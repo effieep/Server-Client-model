@@ -10,11 +10,12 @@ FLAGS   = -I$(INCDIR) -g
 # -g option enables debugging mode 
 # -c flag generates object code for separate files
 
-OBJS1 	= $(BLDDIR)/jobCommander.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/help_server.o
-OBJS2	= $(BLDDIR)/JobExecutorServer.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/help_server.o
-HEADER  = $(INCDIR)/queue.h $(INCDIR)/help.h
+OBJS1 	= $(BLDDIR)/jobCommander.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/help_client.o
+OBJS2	= $(BLDDIR)/jobExecutorServer.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/help_server.o
+HEADER1 = $(INCDIR)/queue.h $(INCDIR)/help_client.h
+HEADER2  = $(INCDIR)/queue.h $(INCDIR)/help_server.h
 OUT1  	= $(BINDIR)/jobCommander
-OUT2 	= $(BINDIR)/JobExecutorServer
+OUT2 	= $(BINDIR)/jobExecutorServer
 OUT3	= $(BINDIR)/progDelay
 
 
@@ -32,14 +33,17 @@ $(OUT3) : $(SRCDIR)/progDelay.c
 $(BLDDIR)/jobCommander.o: $(SRCDIR)/jobCommander.c $(HEADER)
 	$(CC) -c $(FLAGS) $(SRCDIR)/jobCommander.c -o $(BLDDIR)/jobCommander.o
 
-$(BLDDIR)/JobExecutorServer.o: $(SRCDIR)/JobExecutorServer.c $(HEADER)
-	$(CC) -c $(FLAGS) $(SRCDIR)/JobExecutorServer.c -o $(BLDDIR)/JobExecutorServer.o
+$(BLDDIR)/jobExecutorServer.o: $(SRCDIR)/jobExecutorServer.c $(HEADER)
+	$(CC) -c $(FLAGS) $(SRCDIR)/jobExecutorServer.c -o $(BLDDIR)/jobExecutorServer.o
 
 $(BLDDIR)/queue_implementation.o: $(SRCDIR)/queue_implementation.c $(HEADER)
 	$(CC) -c $(FLAGS) $(SRCDIR)/queue_implementation.c -o $(BLDDIR)/queue_implementation.o
 
-$(BLDDIR)/help_server.o: $(SRCDIR)/help_server.c $(INCDIR)/help.h
+$(BLDDIR)/help_server.o: $(SRCDIR)/help_server.c $(INCDIR)/help_server.h
 	$(CC) -c $(FLAGS) $(SRCDIR)/help_server.c -o $(BLDDIR)/help_server.o
+
+$(BLDDIR)/help_client.o: $(SRCDIR)/help_client.c $(INCDIR)/help_client.h
+	$(CC) -c $(FLAGS) $(SRCDIR)/help_client.c -o $(BLDDIR)/help_client.o
 
 # clean house
 clean:
@@ -47,6 +51,3 @@ clean:
 
 restart:
 	rm -f jobExecutorServer.txt
-	rm -f myfifo
-	rm -f issue
-	rm -f exit
