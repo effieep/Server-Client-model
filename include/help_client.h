@@ -22,6 +22,6 @@ void swap_chars(char* ,char*);
 char* string_reverse(char *);
 char* int_to_string(int );
 void switch_command_C(char* );
-void Write_to_Server(int ,char**);
-void Read_from_Server(char*);
+void Write_to_Server(int, int, char**);
+void Read_from_Server(int);
 void Connect_to_Server(int,char**);

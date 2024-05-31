@@ -1,10 +1,7 @@
 #include "help_client.h"
 
-// int pid_mining();
-// bool server_exists(char* filename);
 
 int main(int argc,char *argv[]){
-    int status;
     
     if(argc < 4){
         printf("Usage: ./bin/jobCommander [serverName] [portNum] [jobCommanderInputCommand]\n");
@@ -14,44 +11,7 @@ int main(int argc,char *argv[]){
     int portnum = atoi(argv[2]);
     if(portnum<1024 || portnum>65535){
         printf("Wrong portNum...Choose a port between 1024 and 65535\n");
+        exit(EXIT_FAILURE);
     }
     Connect_to_Server(argc,argv);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

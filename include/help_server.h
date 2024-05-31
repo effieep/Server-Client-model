@@ -23,9 +23,10 @@ void swap_chars(char*,char* );
 char* string_reverse(char *);
 char* int_to_string(int );
 
-void switch_command(char* );            //server
+void switch_command(int, char* );            //server
 void Create_Indicator(pid_t);
-bool Read_from_Commander(char*);
+void Read_from_Commander(int,char*);
+void Write_to_Commander(int,char*);
 void Manage_Jobs();
 char** Create_Array_of_args(char*);
 void Accept_Clients(int,char**);

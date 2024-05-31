@@ -24,13 +24,6 @@ void child_handler(int signo){
     } else if (pid == -1) {
         perror("waitpid");
     }
-
-    // //Remove the job from the executing queue that just terminated
-    // Remove_Pid(&c_executing,pid);
-    // job_triplet* new_job = Dequeue(&c_waiting);
-    // if(new_job != NULL){
-    //     Exec_Enqueue(&c_executing,new_job);
-    // }
 }
 
 void swap_chars(char* ch1,char* ch2){
@@ -80,13 +73,6 @@ char* int_to_string(int n){
     str_num = string_reverse(str_num);
     return str_num;
 }
-
-
-
-
-
-
-
 
 void Exec_Jobs(){
     job_triplet *exec_job = c_executing.front->job;
@@ -153,86 +139,6 @@ void Manage_Jobs(){
 
     Fill_Exec_Queue();
     Exec_Jobs();
-
-}
-
-bool Read_from_Commander(char* command){
-    //returns false if there are no available data to read and true 
-    //if a file descriptor is ready for reading
-    fd_set rfds;
-    struct timeval  tv;
-    int check;
-    int fd = open("myfifo",O_RDONLY | O_NONBLOCK);
-    if (fd == -1) {
-        perror("open");
-        exit(1);
-    }
-    FD_ZERO(&rfds);
-    FD_SET(fd, &rfds);
-
-    tv.tv_sec = 2;
-    tv.tv_usec = 0;
-
-    check = select(fd+1, &rfds, NULL, NULL, &tv);
-    if(check == -1){            //error in select
-        if (errno == EINTR) {
-            // Select was interrupted by a signal, so retry
-            printf("Interrupted by signal\n");
-        } else {
-            perror("select");
-        }
-        close(fd);
-        return false;
-    }else if(check){
-        int bytes_read = read(fd, command,BUFF_SIZE);
-        if(bytes_read == -1){
-            perror("read");
-            exit(7);
-        }
-        close(fd);
-        return true;
-    }else{                      //file descriptor not ready
-        close(fd);
-        //printf("No data avalaible to read\n");
-        return false;
-    }
-}
-
-void Create_Indicator(pid_t pid){
-    int filedes;
-    char* text = int_to_string(pid);
-    printf("The process id of JobExecutorServer is %d %s\n",pid,text);
-
-	if ( (filedes=open(workfile,  O_CREAT | O_RDWR | O_TRUNC, PERMS)) == -1){
-		perror("creating");
-		exit(1);
-	}
-	else { 
-        if(write(filedes,text,strlen(text)) == -1){
-            perror("write");
-            exit(1);
-        }
-        if(close(filedes) == -1){
-            perror("close");
-            exit(1);
-        }
-	}
-}
-
-void Write_to_Commander(char* fifo_name,char* buff){
-    int fd1;
-    if((fd1 = open(fifo_name,O_WRONLY)) == -1){
-        perror("comman open");
-        exit(1);
-    }
-    if(write(fd1, buff,strlen(buff)+1) == -1){
-        perror("write");
-        exit(1);
-    }
-    if(close(fd1) == -1){
-        perror("close");
-        exit(1);
-    }
 }
 
 void issueJob(char* command){
@@ -253,25 +159,18 @@ void issueJob(char* command){
     free(pos);
     int fd1;
     sleep(1);
-    Write_to_Commander("issue",buff);
+    //Write_to_Commander("issue",buff);
     free(buff);
 }
 
-void Exit_Call(){
-    int fd;
-    char buff[] = "jobExecutorServer terminated";
-    if(unlink(workfile) == -1){
-        perror("unlink");
-        exit(-1);
-    }
-    if(unlink("myfifo") == -1){
-        perror("unlink");
-        exit(-1);
-    }
-    sleep(1);
-    Write_to_Commander("exit",buff);
-    //Destroy queue
-    exit(0);
+void setConcurrency(int sockfd,char* num){
+    concurrency = atoi(num);
+    char *response = malloc(21 *sizeof(char));
+    strcpy(response,"CONCURRENCY SET AT ");
+    strcat(response,num);
+    printf("Response is %s\n",response);
+    Write_to_Commander(sockfd,response);
+    printf("Concurrency now is: %d\n",concurrency);
 }
 
 void Stop_Job(char* job_ID){
@@ -303,7 +202,7 @@ void Stop_Job(char* job_ID){
         }
     }
     sleep(1);
-    Write_to_Commander("stop",buff);
+    //Write_to_Commander("stop",buff);
     free(buff);
     free(message);
     free(id);
@@ -319,28 +218,45 @@ void Poll(char* option){
         strcpy(buff,out);
     }
     sleep(1);
-    Write_to_Commander("poll",buff);
+    //Write_to_Commander("poll",buff);
     free(buff);
 }
 
+void Exit_Call(){
+    int fd;
+    char buff[] = "jobExecutorServer terminated";
+    if(unlink(workfile) == -1){
+        perror("unlink");
+        exit(-1);
+    }
+    if(unlink("myfifo") == -1){
+        perror("unlink");
+        exit(-1);
+    }
+    sleep(1);
+    //Write_to_Commander("exit",buff);
+    //Destroy queue
+    exit(0);
+}
 
-void switch_command(char* comm){
+void switch_command(int sockfd, char* comm){
     const char delim[] = " ";
     char* temp = malloc(BUFF_SIZE*sizeof(char));
     strcpy(temp,comm);
     char *tok = strtok(temp, delim);
     if(strcmp(tok,"issueJob")== 0){
-        issueJob(comm);
+        printf("issuejob case\n");
+        //issueJob(comm);
     }else if(strcmp(tok,"setConcurrency")==0){
+        printf("setConcurrency case\n");
         char *num = strtok(NULL, delim); 
-        concurrency = atoi(num);
-        printf("Concurrency now is: %d\n",concurrency);
+        setConcurrency(sockfd,num);
     }else if(strcmp(tok,"stop")==0){
         char *job = strtok(NULL, delim); 
-        Stop_Job(job);
+        //Stop_Job(job);
     }else if(strcmp(tok,"poll")==0){
         char *option = strtok(NULL, delim); 
-        Poll(option);
+        //Poll(option);
     }else if(strcmp(tok,"exit")==0){
         Exit_Call();
     }else{
@@ -385,23 +301,28 @@ void perror_exit(char *message) {
     exit(EXIT_FAILURE);
 }
 
-void child_server(int newsock) {
-    char buf[1];
-    while(read(newsock, buf, 1) > 0) {  /* Receive 1 char */
-    	putchar(buf[0]);           /* Print received char */
-    	/* Capitalize character */
-    	buf[0] = toupper(buf[0]);
-    	/* Reply */
-    	if (write(newsock, buf, 1) < 0)
-    	    perror_exit("write");
+void Write_to_Commander(int socketfd,char* buff){
+    if(write(socketfd, buff,strlen(buff)+1) == -1){
+        perror("write");
+        exit(1);
     }
-    printf("Closing connection.\n");
-    close(newsock);	  /* Close socket */
 }
 
-/* Wait for all dead child processes */
-void sigchld_handler (int sig) {
-	while (waitpid(-1, NULL, WNOHANG) > 0);
+void Read_from_Commander(int socketfd,char* command){
+    if(read(socketfd, command,BUFF_SIZE) == -1){
+        perror("read");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Interact(int newsock) {
+    char command[BUFF_SIZE] = "";
+    memset( command, '\0', sizeof(command)/sizeof(command[0]));
+    Read_from_Commander(newsock,command);
+    printf("Command read is: %s\n",command);
+    switch_command(newsock,command);
+    printf("Closing connection.\n");
+    close(newsock);
 }
 
 void Accept_Clients(int argc,char** argv){
@@ -414,14 +335,13 @@ void Accept_Clients(int argc,char** argv){
     struct hostent *rem;
 
     port = atoi(argv[1]);
-    /* Reap dead children asynchronously */
-    signal(SIGCHLD, sigchld_handler);
+  
     /* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror_exit("socket");
-    server.sin_family = AF_INET;       /* Internet domain */
+    server.sin_family = AF_INET;                        /* Internet domain */
     server.sin_addr.s_addr = htonl(INADDR_ANY);
-    server.sin_port = htons(port);      /* The given port */
+    server.sin_port = htons(port);                      /* The given port */
     /* Bind socket to address */
     if (bind(sock, serverptr, sizeof(server)) < 0)
         perror_exit("bind");
@@ -431,17 +351,10 @@ void Accept_Clients(int argc,char** argv){
     while (1) {
         /* accept connection */
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");
-    	/* Find client's address */
-
+        /* must be closed before it gets re-assigned */   
         printf("Accepted connection\n");
-    	switch (fork()) {    /* Create child for serving client */
-    	  case -1:     /* Error */
-    	    perror("fork"); break;
-    	  case 0:	     /* Child process */
-    	    close(sock); child_server(newsock);
-    	    exit(0);
-       	}
-       	close(newsock);         /* parent closes socket to client            */
-	        	   /* must be closed before it gets re-assigned */
+        Interact(newsock);  
+	                          	      	   
     }
+    close(sock);
 }
