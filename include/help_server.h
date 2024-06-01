@@ -34,6 +34,5 @@ void Read_from_Commander(int,char*);
 void Write_to_Commander(int,char*);
 
 void Manage_Jobs();
-char** Create_Array_of_args(char*);
 void Interact(int);
 void Accept_Clients(int,char**);

@@ -10,10 +10,10 @@ FLAGS   = -I$(INCDIR) -g
 # -g option enables debugging mode 
 # -c flag generates object code for separate files
 
-OBJS1 	= $(BLDDIR)/jobCommander.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/help_client.o
-OBJS2	= $(BLDDIR)/jobExecutorServer.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/help_server.o
+OBJS1 	= $(BLDDIR)/jobCommander.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/helpClient.o
+OBJS2	= $(BLDDIR)/jobExecutorServer.o $(BLDDIR)/queue_implementation.o $(BLDDIR)/helpServer.o $(BLDDIR)/actions.o
 HEADER1 = $(INCDIR)/queue.h $(INCDIR)/help_client.h
-HEADER2  = $(INCDIR)/queue.h $(INCDIR)/help_server.h
+HEADER2 = $(INCDIR)/queue.h $(INCDIR)/help_server.h $(INCDIR)/actions.h
 OUT1  	= $(BINDIR)/jobCommander
 OUT2 	= $(BINDIR)/jobExecutorServer
 OUT3	= $(BINDIR)/progDelay
@@ -39,11 +39,14 @@ $(BLDDIR)/jobExecutorServer.o: $(SRCDIR)/jobExecutorServer.c $(HEADER)
 $(BLDDIR)/queue_implementation.o: $(SRCDIR)/queue_implementation.c $(HEADER)
 	$(CC) -c $(FLAGS) $(SRCDIR)/queue_implementation.c -o $(BLDDIR)/queue_implementation.o
 
-$(BLDDIR)/help_server.o: $(SRCDIR)/help_server.c $(INCDIR)/help_server.h
-	$(CC) -c $(FLAGS) $(SRCDIR)/help_server.c -o $(BLDDIR)/help_server.o
+$(BLDDIR)/helpServer.o: $(SRCDIR)/helpServer.c $(INCDIR)/help_server.h
+	$(CC) -c $(FLAGS) $(SRCDIR)/helpServer.c -o $(BLDDIR)/helpServer.o
 
-$(BLDDIR)/help_client.o: $(SRCDIR)/help_client.c $(INCDIR)/help_client.h
-	$(CC) -c $(FLAGS) $(SRCDIR)/help_client.c -o $(BLDDIR)/help_client.o
+$(BLDDIR)/actions.o: $(SRCDIR)/actions.c $(INCDIR)/help_server.h $(INCDIR)/actions.h
+	$(CC) -c $(FLAGS) $(SRCDIR)/actions.c -o $(BLDDIR)/actions.o
+
+$(BLDDIR)/helpClient.o: $(SRCDIR)/helpClient.c $(INCDIR)/help_client.h
+	$(CC) -c $(FLAGS) $(SRCDIR)/helpClient.c -o $(BLDDIR)/helpClient.o
 
 # clean house
 clean:
