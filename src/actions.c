@@ -51,6 +51,7 @@ void setConcurrency(int sockfd,char* num){
     char *response = malloc(21 *sizeof(char));
     strcpy(response,"CONCURRENCY SET AT ");
     strcat(response,num);
+    strcat(response,"\n");
     printf("Response is %s\n",response);
     Write_to_Commander(sockfd,response);
 }
@@ -129,10 +130,10 @@ void switch_command(int sockfd, char* comm){
     if(strcmp(tok,"issueJob")== 0){
         printf("issuejob case\n");
         issueJob(sockfd,comm);
-    }else if(strcmp(tok,"setConcurrencyLevel")==0){
-        printf("setConcurrencyLevel case\n");
+    }else if(strcmp(tok,"setConcurrency")==0){
+        printf("setConcurrency case\n");
         char *num = strtok(NULL, delim); 
-        setConcurrencyLevel(sockfd,num);
+        setConcurrency(sockfd,num);
     }else if(strcmp(tok,"stop")==0){
         char *job = strtok(NULL, delim); 
         //Stop_Job(job);
