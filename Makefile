@@ -5,7 +5,7 @@ BINDIR = ./bin
 INCDIR = ./include
 
 CC	= gcc
-FLAGS   = -I$(INCDIR) -g 
+FLAGS   = -I$(INCDIR) -g
 #-Wall -Wextra -Werror NA TA VALOOOOOOO
 # -g option enables debugging mode 
 # -c flag generates object code for separate files
@@ -25,7 +25,7 @@ $(OUT1) : $(OBJS1)
 	$(CC) $(OBJS1) -o $(OUT1)
 
 $(OUT2) : $(OBJS2) 
-	$(CC) $(OBJS2) -o $(OUT2)
+	$(CC) $(OBJS2) -o $(OUT2) -lpthread
 
 $(OUT3) : $(SRCDIR)/progDelay.c
 	$(CC) $(SRCDIR)/progDelay.c -o $(OUT3)

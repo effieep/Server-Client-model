@@ -2,7 +2,7 @@
 #include "queue.h"
 #include "actions.h"
 
-static int concurrency = 1;
+static int concurrencyLevel = 1;
 static control c_waiting,c_executing;
 char *workfile="jobExecutorServer.txt";
 
@@ -28,36 +28,31 @@ void child_handler(int signo){
     }
 }
 
-void issueJob(char* command){
-    Enqueue(&c_waiting,command);
+void issueJob(int cl_socket,char* command){
+    Enqueue(&c_waiting,command,cl_socket);
     job_triplet* job_rem = c_waiting.rear->job;
 
     //Send the job triplet back to commander
     char *buff = malloc(100*sizeof(char));
     strcpy(buff,"");            //reinitialize buffer
     //printf("content of buffer %s\n",buff);
+    strcat(buff,"JOB ");
     strcat(buff,job_rem->job_id);
     strcat(buff," ");
     strcat(buff,job_rem->command);
     strcat(buff," ");
-    char* pos = malloc(2*sizeof(char));
-    pos = int_to_string(job_rem->queue_position);
-    strcat(buff,pos);
-    free(pos);
-    int fd1;
-    sleep(1);
-    //Write_to_Commander("issue",buff);
+    strcat(buff,"SUBMITTED\n");
+    Write_to_Commander(cl_socket,buff);
     free(buff);
 }
 
 void setConcurrency(int sockfd,char* num){
-    concurrency = atoi(num);
+    concurrencyLevel = atoi(num);
     char *response = malloc(21 *sizeof(char));
     strcpy(response,"CONCURRENCY SET AT ");
     strcat(response,num);
     printf("Response is %s\n",response);
     Write_to_Commander(sockfd,response);
-    printf("Concurrency now is: %d\n",concurrency);
 }
 
 void Stop_Job(char* job_ID){
@@ -133,11 +128,11 @@ void switch_command(int sockfd, char* comm){
     char *tok = strtok(temp, delim);
     if(strcmp(tok,"issueJob")== 0){
         printf("issuejob case\n");
-        //issueJob(comm);
-    }else if(strcmp(tok,"setConcurrency")==0){
-        printf("setConcurrency case\n");
+        issueJob(sockfd,comm);
+    }else if(strcmp(tok,"setConcurrencyLevel")==0){
+        printf("setConcurrencyLevel case\n");
         char *num = strtok(NULL, delim); 
-        setConcurrency(sockfd,num);
+        setConcurrencyLevel(sockfd,num);
     }else if(strcmp(tok,"stop")==0){
         char *job = strtok(NULL, delim); 
         //Stop_Job(job);
@@ -160,30 +155,29 @@ void Exec_Jobs(){
     do{
         exec_job = cursor->job;
         cursor = cursor->next;
-        if(exec_job != NULL){
-            if(exec_job->pid == 0){
-                char **args = Create_Array_of_args(exec_job->command);
-                pid = fork();
-                if(pid == -1){
-                    perror("fork");
-                }else if(pid > 0){              //parent process
-                    exec_job->pid = pid;
-                }else {                         //child process
-                    if(execvp(args[0],args)==-1){
-                        perror("execv");
-                    }
-                }
-            }
-        }
+       //if(exec_job != NULL){
+            // if(exec_job->pid == 0){
+            //     char **args = Create_Array_of_args(exec_job->command);
+            //     pid = fork();
+            //     if(pid == -1){
+            //         perror("fork");
+            //     }else if(pid > 0){              //parent process
+            //         exec_job->pid = pid;
+            //     }else {                         //child process
+            //         if(execvp(args[0],args)==-1){
+            //             perror("execv");
+            //         }
+            //     }
+            // }
+        //}
     }while(c_executing.jobs_in_queue > 0 && cursor != NULL);  //inifinite loop giati den meiono to jobs_in_queue
-
 }
 
 void Fill_Exec_Queue(){
     job_triplet* curr_job;
     int jobs;
 
-    jobs = concurrency - c_executing.jobs_in_queue;
+    jobs = concurrencyLevel - c_executing.jobs_in_queue;
     if(jobs>0){         //more jobs can be added in the executing queue
         for(int i=1;i<=jobs;i++){
             if(c_waiting.jobs_in_queue > 0){
@@ -192,7 +186,7 @@ void Fill_Exec_Queue(){
             }
         }
     }else{              //some jobs must be removed from the executing queue
-        jobs = c_executing.jobs_in_queue - concurrency;
+        jobs = c_executing.jobs_in_queue - concurrencyLevel;
         for(int i=1;i<=jobs;i++){
             if(c_executing.front != NULL){
                 job_triplet* removed = c_executing.front->job;

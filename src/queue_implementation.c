@@ -20,13 +20,14 @@ void assign_id(job_triplet* job,control* ctrl){
     strcat(job->job_id,id);
 }
 
-void Initialize_Job(job_triplet* job,char* comm,control* ctrl){
+void Initialize_Job(job_triplet* job,char* comm,control* ctrl,int cl_socket){
     assign_id(job,ctrl);
     int length = strlen(comm);
     job->command = malloc((length+1)*sizeof(char));
     strcpy(job->command,comm);
     job->queue_position = ctrl->jobs_in_queue;
     job->pid = 0;
+    job->client_socket = cl_socket;
 }
 
 void Exec_Enqueue(control *ctrl,job_triplet* job){
@@ -52,7 +53,7 @@ void Exec_Enqueue(control *ctrl,job_triplet* job){
     }
 }
 
-void Enqueue(control *ctrl,char* command){
+void Enqueue(control *ctrl,char* command,int clientfd){
     node* new = malloc(sizeof(node));
     if(new != NULL){
         new->job = malloc(sizeof(job_triplet));
@@ -68,7 +69,7 @@ void Enqueue(control *ctrl,char* command){
         }
         ctrl->jobs_in_queue++;
         ctrl->total_jobs++;
-        Initialize_Job(new->job,command,ctrl);
+        Initialize_Job(new->job,command,ctrl,clientfd);
     }else{
         printf("Failed to allocate memory\n");
     }

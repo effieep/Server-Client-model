@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <netdb.h>
 #include <netinet/in.h>	     /* internet sockets */
+#include <pthread.h>
 
 #define BUFF_SIZE 1024
 #define PERMS 0644	// access permission for the 3 groups of users
@@ -24,15 +25,10 @@ char* string_reverse(char *);
 char* int_to_string(int );
 
 void switch_command(int, char* );          
-void issueJob(char*);
-void setConcurrency(int ,char* );
-void Stop_Job(char*);
-void Poll(char*);
-void Exit_Call();
 
 void Read_from_Commander(int,char*);
 void Write_to_Commander(int,char*);
 
 void Manage_Jobs();
-void Interact(int);
-void Accept_Clients(int,char**);
+void *Controller_Thread(void*);
+void Accept_Clients(char**);

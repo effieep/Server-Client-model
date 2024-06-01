@@ -17,5 +17,5 @@ int main(int argc,char *argv[]){
     }else if(threadPoolSize<=0){
         printf("Wrong input...\n");
     }
-    Accept_Clients(argc,argv);
+    Accept_Clients(argv);
 }

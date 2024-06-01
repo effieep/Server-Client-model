@@ -1,7 +1,7 @@
 #include "help_client.h"
 
 void swap_chars(char* ch1,char* ch2){
-    char *tmp;
+    char *tmp = NULL;
     *tmp = *ch1;
     *ch1 = *ch2;
     *ch2 = *tmp;
@@ -9,7 +9,6 @@ void swap_chars(char* ch1,char* ch2){
 
 char* string_reverse(char *str){
     int front_index,end_index,length;
-    char temp;
     length = strlen(str);
     front_index = 0;
     end_index = length - 1;
@@ -54,7 +53,7 @@ void Read_from_Server(int socketfd){
     if(read(socketfd, buff2, sizeof(buff2)) == -1){
         perror("read");
     }
-    printf("Received string: %s", buff2);
+    printf("%s", buff2);
     close(socketfd);
 }
 
@@ -77,8 +76,7 @@ void Write_to_Server(int socketfd,int argc,char** argv){
 }
 
 void Connect_to_Server(int argc,char** argv){
-    int portnum, sockfd, i;
-    char buf[256];
+    int portnum, sockfd;
 
     struct sockaddr_in server;
     struct sockaddr *serverptr = (struct sockaddr*)&server;

@@ -13,10 +13,13 @@
 #include <ctype.h>	         /* toupper */
 #include <signal.h>
 
+
+#define perror2(s,e) fprintf(stderr, "%s: %s\n", s, strerror(e));
+
 char** Create_Array_of_args(char*);
-void issueJob(char* command);
-void setConcurrency(int sockfd,char* num);
-void Stop_Job(char* job_ID);
-void Poll(char* option);
+void issueJob(int,char* );
+void setConcurrency(int ,char* );
+void Stop_Job(char* );
+void Poll(char*);
 void Exit_Call();
-void switch_command(int sockfd, char* comm);
+void switch_command(int, char*);

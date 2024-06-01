@@ -3,7 +3,7 @@
 #include "actions.h"
 
 void swap_chars(char* ch1,char* ch2){
-    char *tmp;
+    char *tmp = NULL;
     *tmp = *ch1;
     *ch1 = *ch2;
     *ch2 = *tmp;
@@ -11,7 +11,6 @@ void swap_chars(char* ch1,char* ch2){
 
 char* string_reverse(char *str){
     int front_index,end_index,length;
-    char temp;
     length = strlen(str);
     front_index = 0;
     end_index = length - 1;
@@ -68,7 +67,9 @@ void Read_from_Commander(int socketfd,char* command){
     }
 }
 
-void Interact(int newsock) {
+void *Controller_Thread(void* arg) {
+    int newsock = *((int*)arg);
+    printf("Argument passed is %d\n",newsock);
     char command[BUFF_SIZE] = "";
     memset( command, '\0', sizeof(command)/sizeof(command[0]));
     Read_from_Commander(newsock,command);
@@ -76,16 +77,16 @@ void Interact(int newsock) {
     switch_command(newsock,command);
     printf("Closing connection.\n");
     close(newsock);
+    return NULL;
 }
 
-void Accept_Clients(int argc,char** argv){
+void Accept_Clients(char** argv){
     int port, sock, newsock;
     struct sockaddr_in server, client;
     socklen_t clientlen;
 
     struct sockaddr *serverptr=(struct sockaddr *)&server;
     struct sockaddr *clientptr=(struct sockaddr *)&client;
-    struct hostent *rem;
 
     port = atoi(argv[1]);
   
@@ -106,8 +107,22 @@ void Accept_Clients(int argc,char** argv){
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");
         /* must be closed before it gets re-assigned */   
         printf("Accepted connection\n");
-        Interact(newsock);  
-	                          	      	   
+        int err, status;
+        pthread_t thr;
+        int* arg = malloc(sizeof(int));
+        *arg = newsock;
+        printf("Creating the controller thread...\n");
+        if ((err = pthread_create(&thr, NULL, Controller_Thread, arg))!=0) { /* New thread */
+            perror2("pthread_create", err);
+            exit(1); 
+        }
+        printf("I am original thread %ld and I created thread %ld\n", 
+            (unsigned long)pthread_self(), (unsigned long)thr);
+        if ((err = pthread_join(thr, (void **) &status))!=0) { /* Wait for thread */
+            perror2("pthread_join", err); /* termination */
+            exit(1); 
+            }
+        else printf("Just joinned the two threads ->one!\n");  
     }
     close(sock);
 }

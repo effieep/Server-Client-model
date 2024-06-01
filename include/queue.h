@@ -22,11 +22,12 @@ typedef struct job_triplet{         //info for job
     char* job_id;
     char* command;
     int queue_position;
+    int client_socket;
     pid_t pid;
 }job_triplet;
 
 
-void Enqueue(control *,char*);
+void Enqueue(control *,char*,int);
 void Initialize_control_queue(control* );
 void Show_Queue(control* );
 job_triplet* Dequeue(control* );
