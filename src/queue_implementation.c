@@ -3,11 +3,12 @@
 #include "queue.h"
 #include "help_server.h"
 
-void Initialize_control_queue(control* ctrl){
+void Initialize_control_queue(control* ctrl,int bufsize){
     ctrl->front = NULL;
     ctrl->rear = NULL;
     ctrl->jobs_in_queue = 0;                //indicator of queue_position
     ctrl->total_jobs=0;                     //indicator of id
+    ctrl->max_jobs = bufsize;
 }
 
 void assign_id(job_triplet* job,control* ctrl){
@@ -208,16 +209,27 @@ char* Queue_Output(control* c){
             strcat(output,main_cursor->job->job_id);
             strcat(output," ");
             strcat(output,main_cursor->job->command);
-            strcat(output," ");
-            char* pos = malloc(2*sizeof(char));
-            pos = int_to_string(main_cursor->job->queue_position);
-            strcat(output,pos);
             strcat(output,"\n");
-            free(pos);
+ 
             main_cursor = main_cursor->next;
         } while (main_cursor != NULL);
     }else{
         strcpy(output,"Empty queue");
     }
     return output;
+}
+
+void free_job(job_triplet* job){
+    free(job->command);
+    free(job->job_id);
+}
+
+void Destroy_Queue(control* c){
+    while(c->front != NULL) {
+        struct node* tmp = c->front;
+        c->front = c->front->next;
+        free_job(tmp->job);
+        free(tmp);
+    }
+    c->rear = NULL;
 }

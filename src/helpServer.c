@@ -46,8 +46,10 @@ char* int_to_string(int n){
         str_num[i++] = digit;
     }
     str_num = string_reverse(str_num);
+    str_num[strlen(str_num)] = '\0';
     return str_num;
 }
+
 void perror_exit(char *message) {
     perror(message);
     exit(EXIT_FAILURE);
@@ -81,7 +83,7 @@ void *Controller_Thread(void* arg) {
 }
 
 void Accept_Clients(char** argv){
-    int port, sock, newsock;
+    int port, sock, newsock,buffersize;
     struct sockaddr_in server, client;
     socklen_t clientlen;
 
@@ -89,7 +91,9 @@ void Accept_Clients(char** argv){
     struct sockaddr *clientptr=(struct sockaddr *)&client;
 
     port = atoi(argv[1]);
-  
+    
+    buffersize = atoi(argv[2]);
+    Initialize_buffer(buffersize);
     /* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror_exit("socket");

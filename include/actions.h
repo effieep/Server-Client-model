@@ -16,10 +16,11 @@
 
 #define perror2(s,e) fprintf(stderr, "%s: %s\n", s, strerror(e));
 
+void Initialize_buffer(int);
 char** Create_Array_of_args(char*);
 void issueJob(int,char* );
 void setConcurrency(int ,char* );
-void Stop_Job(char* );
-void Poll(char*);
+void Stop_Job(int,char* );
+void Poll(int);
 void Exit_Call();
 void switch_command(int, char*);

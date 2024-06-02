@@ -3,7 +3,7 @@
 #include "actions.h"
 
 static int concurrencyLevel = 1;
-static control c_waiting,c_executing;
+static control buffer,c_executing;
 char *workfile="jobExecutorServer.txt";
 
 
@@ -29,8 +29,13 @@ void child_handler(int signo){
 }
 
 void issueJob(int cl_socket,char* command){
-    Enqueue(&c_waiting,command,cl_socket);
-    job_triplet* job_rem = c_waiting.rear->job;
+    if(buffer.jobs_in_queue < buffer.max_jobs){
+        Enqueue(&buffer,command,cl_socket);
+    }else{
+        printf("BufferSize reached.\n");
+        return;
+    }
+    job_triplet* job_rem = buffer.rear->job;
 
     //Send the job triplet back to commander
     char *buff = malloc(100*sizeof(char));
@@ -56,69 +61,50 @@ void setConcurrency(int sockfd,char* num){
     Write_to_Commander(sockfd,response);
 }
 
-void Stop_Job(char* job_ID){
+void Stop_Job(int sockfd,char* job_ID){
     char* id = malloc(6*sizeof(char));
     int fd;
-    char *buff = malloc(20*sizeof(char));
-    char *message = malloc(10*sizeof(char));
+    char *buff = malloc(10*sizeof(char));
+    char *message = malloc(20*sizeof(char));
     strcpy(buff,"");                            //reinitialize buffer
     strcpy(id,job_ID);
     //printf("jobid is: %s\n",id);
-    bool found_in_wait = Remove_Job(&c_waiting,job_ID);
+    bool found = Remove_Job(&buffer,job_ID);
     //printf("found in wait? %d\n",found_in_wait);
-    if(found_in_wait){
-        //Create message job_XX removed
-       strcpy(message,"removed");
-       strcat(buff,id);
-       strcat(buff," ");
-       strcat(buff,message);   
+    if(found){
+        //Create message JOB <jobid> REMOVED
+        strcpy(message,"JOB ");
+        strcat(buff,id);
+        strcat(buff," ");
+        strcat(message,buff);   
+        strcat(message,"REMOVED\n");
     }else{
-        bool found_in_exec = Remove_Job(&c_executing,job_ID);
-        if(found_in_exec){
-            //Create message job_XX terminated
-            strcpy(message,"terminated");
-            strcat(buff,id);
-            strcat(buff," ");
-            strcat(buff,message);   
-        }else{
-            strcat(buff,"Job does not exist\n");
-        }
+        //Create message JOB <jobid> NOT FOUND
+        strcpy(message,"JOB ");
+        strcat(buff,id);
+        strcat(buff," ");
+        strcat(message,buff);   
+        strcat(message,"NOT FOUND\n");
     }
-    sleep(1);
-    //Write_to_Commander("stop",buff);
+    Write_to_Commander(sockfd,message);
     free(buff);
     free(message);
     free(id);
 }
 
-void Poll(char* option){
+void Poll(int sockfd){
     char* buff = malloc(BUFF_SIZE*sizeof(char));
-    if(strcmp(option,"queued") == 0){
-        char* out = Queue_Output(&c_waiting);
-        strcpy(buff,out);
-    }else if(strcmp(option,"running") == 0){
-        char* out = Queue_Output(&c_executing);
-        strcpy(buff,out);
-    }
-    sleep(1);
-    //Write_to_Commander("poll",buff);
+    char* out = Queue_Output(&buffer);
+    strcpy(buff,out);
+    Write_to_Commander(sockfd,buff);
     free(buff);
 }
 
-void Exit_Call(){
+void Exit_Call(int sockfd){
     int fd;
-    char buff[] = "jobExecutorServer terminated";
-    if(unlink(workfile) == -1){
-        perror("unlink");
-        exit(-1);
-    }
-    if(unlink("myfifo") == -1){
-        perror("unlink");
-        exit(-1);
-    }
-    sleep(1);
-    //Write_to_Commander("exit",buff);
-    //Destroy queue
+    char buff[] = "SERVER TERMINATED BEFORE EXECUTION\n";
+    Destroy_Queue(&buffer);
+    Write_to_Commander(sockfd,buff);
     exit(0);
 }
 
@@ -129,19 +115,32 @@ void switch_command(int sockfd, char* comm){
     char *tok = strtok(temp, delim);
     if(strcmp(tok,"issueJob")== 0){
         printf("issuejob case\n");
-        issueJob(sockfd,comm);
+        char* result = malloc(BUFF_SIZE * sizeof(char));
+        strcpy(result,"");
+        //Isolate issueJob from the rest of string
+        //keep only the unix command in the variable 
+        char *token = strtok(comm, delim);
+        while (token != NULL) {
+            token = strtok(NULL, delim); 
+            if(token != NULL){
+                strcat(result,token);
+                strcat(result," ");
+            }
+        }
+        result[strlen(result) - 1] = '\0';
+        issueJob(sockfd,result);
+        free(result);
     }else if(strcmp(tok,"setConcurrency")==0){
         printf("setConcurrency case\n");
         char *num = strtok(NULL, delim); 
         setConcurrency(sockfd,num);
     }else if(strcmp(tok,"stop")==0){
         char *job = strtok(NULL, delim); 
-        //Stop_Job(job);
+        Stop_Job(sockfd,job);
     }else if(strcmp(tok,"poll")==0){
-        char *option = strtok(NULL, delim); 
-        //Poll(option);
+        Poll(sockfd);
     }else if(strcmp(tok,"exit")==0){
-        Exit_Call();
+        Exit_Call(sockfd);
     }else{
         printf("Command does not exists.Try again!\n");
     }
@@ -181,8 +180,8 @@ void Fill_Exec_Queue(){
     jobs = concurrencyLevel - c_executing.jobs_in_queue;
     if(jobs>0){         //more jobs can be added in the executing queue
         for(int i=1;i<=jobs;i++){
-            if(c_waiting.jobs_in_queue > 0){
-                curr_job = Dequeue(&c_waiting);
+            if(buffer.jobs_in_queue > 0){
+                curr_job = Dequeue(&buffer);
                 Exec_Enqueue(&c_executing,curr_job);    
             }
         }
@@ -243,4 +242,8 @@ char** Create_Array_of_args(char* command){
     }
     args[count] = NULL;
     return args;
+}
+
+void Initialize_buffer(int bufferSize){
+    Initialize_control_queue(&buffer,bufferSize);
 }
