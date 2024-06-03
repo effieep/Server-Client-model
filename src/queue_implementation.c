@@ -136,9 +136,6 @@ void Remove_node(control*c,node* prev,node* current){
     }else{                          
         prev->next = current->next;         //node in the middle of the queue
     }
-    if(current->job->pid != 0){             //Terminate the current process
-        kill(current->job->pid,SIGKILL);
-    }
     c->jobs_in_queue--;
     node* main_cursor = current->next;
     //fix the queue position of the next nodes
@@ -232,4 +229,22 @@ void Destroy_Queue(control* c){
         free(tmp);
     }
     c->rear = NULL;
+}
+
+bool Search_Client(control* c,int socketfd){
+    bool found = false;
+    node* main_cursor;
+    main_cursor = c->front;
+    //printf("The queue is : \n");
+    if(main_cursor != NULL){
+        do
+        {
+            if(main_cursor->job->client_socket == socketfd){
+                found = true;
+                break;
+            }
+            main_cursor = main_cursor->next;
+        } while (main_cursor != NULL);
+    }
+    return found;
 }
