@@ -17,6 +17,7 @@
 #define perror2(s,e) fprintf(stderr, "%s: %s\n", s, strerror(e));
 
 void Initialize_buffer(int);
+void Cond_Initialization();
 char** Create_Array_of_args(char*);
 void issueJob(int,char* );
 void setConcurrency(int ,char* );
@@ -24,3 +25,5 @@ void Stop_Job(int,char* );
 void Poll(int);
 void Exit_Call();
 void switch_command(int, char*);
+job_triplet* Read_Buffer();
+void Exec_Job(job_triplet*);

@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "help.h": "c",
+        "help_client.h": "c",
+        "actions.h": "c",
+        "queue.h": "c",
+        "help_server.h": "c",
+        "signal.h": "c",
+        "__bit_reference": "c",
+        "bitset": "c",
+        "chrono": "c",
+        "unordered_map": "c",
+        "algorithm": "c"
+    }
+}

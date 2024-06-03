@@ -4,7 +4,7 @@
 int main(int argc,char *argv[]){
     
     if(argc < 4){
-        printf("Usage: ./bin/jobExecutorServer [portNum] [bufferSize] [threadPollSize]\n");
+        printf("Usage: ./bin/jobExecutorServer [portNum] [bufferSize] [threadPoolSize]\n");
         exit(0);
     }
     int portnum = atoi(argv[1]);

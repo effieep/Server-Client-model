@@ -6,6 +6,8 @@ static int concurrencyLevel = 1;
 static control buffer,c_executing;
 char *workfile="jobExecutorServer.txt";
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t empty,fill;
 
 void handle_enable_server(int signo){
     printf("Server activated!\n");
@@ -28,13 +30,19 @@ void child_handler(int signo){
     }
 }
 
-void issueJob(int cl_socket,char* command){
-    if(buffer.jobs_in_queue < buffer.max_jobs){
-        Enqueue(&buffer,command,cl_socket);
-    }else{
-        printf("BufferSize reached.\n");
-        return;
+void Place_to_Buffer(int sockfd,char* command){
+    pthread_mutex_lock(&mutex);
+    //If buffer is full put thread in sleeping mode 
+    while(buffer.jobs_in_queue == buffer.max_jobs){
+        pthread_cond_wait(&empty,&mutex);
     }
+    Enqueue(&buffer,command,sockfd);
+    pthread_cond_signal(&fill);
+    pthread_mutex_unlock(&mutex);
+}
+
+void issueJob(int cl_socket,char* command){
+    Place_to_Buffer(cl_socket,command);
     job_triplet* job_rem = buffer.rear->job;
 
     //Send the job triplet back to commander
@@ -102,9 +110,18 @@ void Poll(int sockfd){
 
 void Exit_Call(int sockfd){
     int fd;
-    char buff[] = "SERVER TERMINATED BEFORE EXECUTION\n";
+    char *response = malloc(50*sizeof(char));
+    strcpy(response,"");
+    char mess[] = "SERVER TERMINATED\n";
+    strcat(response,mess);
+    bool client_found = Search_Client(&buffer,sockfd);
+    if(client_found){
+        char buff[] = "SERVER TERMINATED BEFORE EXECUTION\n";
+        strcat(response,buff);
+    }
     Destroy_Queue(&buffer);
-    Write_to_Commander(sockfd,buff);
+    Write_to_Commander(sockfd,response);
+    free(response);
     exit(0);
 }
 
@@ -147,30 +164,21 @@ void switch_command(int sockfd, char* comm){
     free(temp);
 }
 
-void Exec_Jobs(){
-    job_triplet *exec_job = c_executing.front->job;
-    node* cursor = c_executing.front;
+void Exec_Job(job_triplet* exec_job){
     pid_t pid;
-    //Execute jobs in executing queue
-    do{
-        exec_job = cursor->job;
-        cursor = cursor->next;
-       //if(exec_job != NULL){
-            // if(exec_job->pid == 0){
-            //     char **args = Create_Array_of_args(exec_job->command);
-            //     pid = fork();
-            //     if(pid == -1){
-            //         perror("fork");
-            //     }else if(pid > 0){              //parent process
-            //         exec_job->pid = pid;
-            //     }else {                         //child process
-            //         if(execvp(args[0],args)==-1){
-            //             perror("execv");
-            //         }
-            //     }
-            // }
-        //}
-    }while(c_executing.jobs_in_queue > 0 && cursor != NULL);  //inifinite loop giati den meiono to jobs_in_queue
+    if(exec_job != NULL){
+        char **args = Create_Array_of_args(exec_job->command);
+        pid = fork();
+        if(pid == -1){
+            perror("fork");
+        }else if(pid > 0){              //parent process
+            exec_job->pid = pid;
+        }else {                         //child process
+            if(execvp(args[0],args)==-1){
+                perror("execv");
+            }
+        }
+    }
 }
 
 void Fill_Exec_Queue(){
@@ -210,28 +218,32 @@ void Manage_Jobs(){
     sigaction(SIGCHLD, &act, NULL);
 
     Fill_Exec_Queue();
-    Exec_Jobs();
+    //Exec_Jobs();
 }
 
 char** Create_Array_of_args(char* command){
-    char temp1[BUFF_SIZE],temp2[BUFF_SIZE];
+    char temp1[100],temp2[100];
     strcpy(temp1,command);
     strcpy(temp2,command);
     const char delim[] = " ";
     char **args;
     char *token = strtok(temp1, delim);
-    int count = 0;
+    int count;
     // Iterate through the tokens
     while (token != NULL) {
         count++;
         token = strtok(NULL, delim); // Get the next token
     }
+    printf("Count is %d\n",count);
     args = malloc(count * sizeof(char*));
 
     // Tokenize the string
     token = strtok(temp2, delim);
-    //skip first token which contains issueJob
-    count = 0;
+    printf("token is %s\n",token);
+    args[0] = malloc((strlen(token)+1)*sizeof(char));
+    strcpy(args[0],token);
+    printf("lalalalla %s\n",args[0]);
+    count = 1;
     while (token != NULL) {
         token = strtok(NULL, delim); // Get the next token
         if(token != NULL){
@@ -241,9 +253,28 @@ char** Create_Array_of_args(char* command){
         }
     }
     args[count] = NULL;
+    for(int i=0;i<count;i++){
+        printf("%s\n",args[i]);
+    }
     return args;
 }
 
 void Initialize_buffer(int bufferSize){
     Initialize_control_queue(&buffer,bufferSize);
+}
+
+void Cond_Initialization(){
+    pthread_cond_init(&fill, NULL); /* Initialize condition variable */
+    pthread_cond_init(&empty, NULL); 
+}
+
+job_triplet* Read_Buffer(){
+    pthread_mutex_lock(&mutex);
+    while(buffer.jobs_in_queue == 0){
+        pthread_cond_wait(&fill,&mutex);
+    }
+    job_triplet* job = Dequeue(&buffer);
+    pthread_cond_signal(&empty);
+    pthread_mutex_unlock(&mutex);
+    return job;
 }

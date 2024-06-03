@@ -2,6 +2,9 @@
 #include "queue.h"
 #include "actions.h"
 
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cvar;           /* Condition variable */
+
 void swap_chars(char* ch1,char* ch2){
     char *tmp = NULL;
     *tmp = *ch1;
@@ -69,6 +72,7 @@ void Read_from_Commander(int socketfd,char* command){
     }
 }
 
+
 void *Controller_Thread(void* arg) {
     int newsock = *((int*)arg);
     printf("Argument passed is %d\n",newsock);
@@ -82,8 +86,28 @@ void *Controller_Thread(void* arg) {
     return NULL;
 }
 
+void *Worker_Thread(void *args){
+    job_triplet* job = Read_Buffer();
+    printf("Job retrieved is: %s %s,%d\n",job->job_id,job->command,job->client_socket);
+    //RUN JOB
+    Exec_Job(job);
+    //RETURN OUTPUT
+    return NULL;
+}
+
+void Create_WorkerThreads(int k){
+    int err;
+    pthread_t wthr;
+    for(int i=1;i<=k;i++){
+        if ((err = pthread_create(&wthr, NULL, Worker_Thread, NULL))!=0) { /* New thread */
+            perror2("pthread_create", err);
+            exit(1); 
+        }
+    }
+}
+
 void Accept_Clients(char** argv){
-    int port, sock, newsock,buffersize;
+    int port, sock, newsock,buffersize,threadPoolSize;
     struct sockaddr_in server, client;
     socklen_t clientlen;
 
@@ -91,9 +115,10 @@ void Accept_Clients(char** argv){
     struct sockaddr *clientptr=(struct sockaddr *)&client;
 
     port = atoi(argv[1]);
-    
     buffersize = atoi(argv[2]);
+    threadPoolSize = atoi(argv[3]);
     Initialize_buffer(buffersize);
+    Cond_Initialization();
     /* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror_exit("socket");
@@ -106,6 +131,7 @@ void Accept_Clients(char** argv){
     /* Listen for connections */
     if (listen(sock, 5) < 0) perror_exit("listen");
     printf("Listening for connections to port %d\n", port);
+
     while (1) {
         /* accept connection */
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");
@@ -120,13 +146,27 @@ void Accept_Clients(char** argv){
             perror2("pthread_create", err);
             exit(1); 
         }
-        printf("I am original thread %ld and I created thread %ld\n", 
-            (unsigned long)pthread_self(), (unsigned long)thr);
+        pthread_t wthr;
+        for(int i=1;i<=threadPoolSize;i++){
+            if ((err = pthread_create(&wthr, NULL, Worker_Thread, NULL))!=0) { /* New thread */
+                perror2("pthread_create", err);
+                exit(1); 
+            }
+        }
+
+        //Create_WorkerThreads(threadPoolSize);
+
+        printf("I am original thread %ld and I created thread %ld and %ld\n", 
+            (unsigned long)pthread_self(), (unsigned long)thr,(unsigned long)wthr);
+        if ((err = pthread_join(wthr, (void **) &status))!=0) { /* Wait for thread */
+            perror2("pthread_join", err); /* termination */
+            exit(1); 
+        }
+        else printf("Just joinned the two threads ->one!\n");  
         if ((err = pthread_join(thr, (void **) &status))!=0) { /* Wait for thread */
             perror2("pthread_join", err); /* termination */
             exit(1); 
-            }
-        else printf("Just joinned the two threads ->one!\n");  
+        }
     }
     close(sock);
 }
