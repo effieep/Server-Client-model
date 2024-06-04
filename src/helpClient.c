@@ -105,5 +105,7 @@ void Connect_to_Server(int argc,char** argv){
 
     Write_to_Server(sockfd,argc,argv);
     Read_from_Server(sockfd);
+    //select read and check file descriptors its time
+    Read_from_Server(sockfd);
     close(sockfd);
 }

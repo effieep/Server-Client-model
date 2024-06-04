@@ -163,8 +163,7 @@ void switch_command(int sockfd, char* comm){
     }
     free(temp);
 }
-
-char* Create_File(pid_t pid,char* jobid,int* filedes){
+int Create_File(pid_t pid,char* jobid){
     int fd;
     printf("fd = %d\n",fd);
     char* id = malloc(10*sizeof(char));
@@ -177,19 +176,52 @@ char* Create_File(pid_t pid,char* jobid,int* filedes){
         perror("creating");
         exit(1);
     }
+    free(id);
+    return fd;
+}
+
+void Return_job_output(job_triplet* job,int pid){
+    int fd;
+    //Create first line of the output
     char *startline = malloc(30*sizeof(char));
     strcpy(startline,"-----");
-    strcat(startline,jobid);
+    strcat(startline,job->job_id);
     strcat(startline," output start-----\n\n");
-    filename[strlen(filename)] = '\0';
-    if(write(fd,startline,strlen(startline)) == -1){
-        perror("write");
+    Write_to_Commander(job->client_socket,startline);
+    //Specify the filename of pid.out
+    char* id = malloc(10*sizeof(char));
+    id = int_to_string(pid);
+
+    strcat(id,".out");
+
+    if ( (fd = open(id, O_RDWR | O_APPEND, PERMS)) == -1){
+        perror("creating");
         exit(1);
     }
-    free(id);
+    // char buffer[BUFF_SIZE];
+    // int bytes_read,bytes_written;
+    // while ((bytes_read = read(fd, buffer, BUFF_SIZE)) > 0) {
+    //     bytes_written = write(job->client_socket, buffer, bytes_read);
+    //     if (bytes_written != bytes_read) {
+    //         perror("write");
+    //         close(fd);
+    //         exit(EXIT_FAILURE);
+    //     }
+    // }
+
+
+    // Create the last line of the output
+    char *endline = malloc(30*sizeof(char));
+    strcpy(endline,"\n-----");
+    strcat(endline,job->job_id);
+    strcat(endline," output end-----");
+    
+    
+    //Write_to_Commander(job->client_socket,endline);
+
+    free(endline);
     free(startline);
-    *filedes = fd;
-    return filename;
+    close(fd);
 }
 
 void Exec_Job(job_triplet* exec_job){
@@ -210,32 +242,16 @@ void Exec_Job(job_triplet* exec_job){
                 exit(EXIT_FAILURE);
             }
         }else {                         //child process
-            fn = Create_File(getpid(),exec_job->job_id,&fd);
+            fd = Create_File(getpid(),exec_job->job_id);
             dup2(fd,1);
             if(execvp("ls",args)==-1){
                 perror("execv");
             }
         }
     }
-    printf("lalalalallala");
-    char *endline = malloc(30*sizeof(char));
-    strcpy(endline,"\n-----");
-    strcat(endline,exec_job->job_id);
-    strcat(endline," output end-----");
-    printf("filename is %s\n",fn);
-    if ( (fd = open(fn, O_CREAT| O_RDWR | O_APPEND, PERMS)) == -1){
-        perror("creating");
-        exit(1);
-    }
-    if(write(fd,endline,strlen(endline)) == -1){
-        perror("write");
-        exit(1);
-    }
-    free(endline);
-    close(fd);
+    Return_job_output(exec_job,pid);
     dup2(stdoutCopy,1);
     close(stdoutCopy);
-
 }
 
 void Fill_Exec_Queue(){
