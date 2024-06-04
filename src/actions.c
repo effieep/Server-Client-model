@@ -164,21 +164,78 @@ void switch_command(int sockfd, char* comm){
     free(temp);
 }
 
+char* Create_File(pid_t pid,char* jobid,int* filedes){
+    int fd;
+    printf("fd = %d\n",fd);
+    char* id = malloc(10*sizeof(char));
+    id = int_to_string(pid);
+    char* filename = malloc(15*sizeof(char));
+    strcpy(filename,id);
+    strcat(filename,".out");
+    printf("filename is %s\n",filename);
+    if ( (fd = open(filename,  O_CREAT | O_RDWR | O_APPEND, PERMS)) == -1){
+        perror("creating");
+        exit(1);
+    }
+    char *startline = malloc(30*sizeof(char));
+    strcpy(startline,"-----");
+    strcat(startline,jobid);
+    strcat(startline," output start-----\n\n");
+    filename[strlen(filename)] = '\0';
+    if(write(fd,startline,strlen(startline)) == -1){
+        perror("write");
+        exit(1);
+    }
+    free(id);
+    free(startline);
+    *filedes = fd;
+    return filename;
+}
+
 void Exec_Job(job_triplet* exec_job){
     pid_t pid;
+    int fd;
+    int status;
+    char* fn;
+    int stdoutCopy = dup(1); 
     if(exec_job != NULL){
         char **args = Create_Array_of_args(exec_job->command);
         pid = fork();
         if(pid == -1){
             perror("fork");
         }else if(pid > 0){              //parent process
-            exec_job->pid = pid;
+            if (wait(&status) == -1) {
+                // wait failed
+                perror("wait");
+                exit(EXIT_FAILURE);
+            }
         }else {                         //child process
-            if(execvp(args[0],args)==-1){
+            fn = Create_File(getpid(),exec_job->job_id,&fd);
+            dup2(fd,1);
+            if(execvp("ls",args)==-1){
                 perror("execv");
             }
         }
     }
+    printf("lalalalallala");
+    char *endline = malloc(30*sizeof(char));
+    strcpy(endline,"\n-----");
+    strcat(endline,exec_job->job_id);
+    strcat(endline," output end-----");
+    printf("filename is %s\n",fn);
+    if ( (fd = open(fn, O_CREAT| O_RDWR | O_APPEND, PERMS)) == -1){
+        perror("creating");
+        exit(1);
+    }
+    if(write(fd,endline,strlen(endline)) == -1){
+        perror("write");
+        exit(1);
+    }
+    free(endline);
+    close(fd);
+    dup2(stdoutCopy,1);
+    close(stdoutCopy);
+
 }
 
 void Fill_Exec_Queue(){
@@ -234,15 +291,15 @@ char** Create_Array_of_args(char* command){
         count++;
         token = strtok(NULL, delim); // Get the next token
     }
-    printf("Count is %d\n",count);
+    //printf("Count is %d\n",count);
     args = malloc(count * sizeof(char*));
 
     // Tokenize the string
     token = strtok(temp2, delim);
-    printf("token is %s\n",token);
+    //printf("token is %s\n",token);
     args[0] = malloc((strlen(token)+1)*sizeof(char));
     strcpy(args[0],token);
-    printf("lalalalla %s\n",args[0]);
+    //printf("lalalalla %s\n",args[0]);
     count = 1;
     while (token != NULL) {
         token = strtok(NULL, delim); // Get the next token
@@ -253,9 +310,10 @@ char** Create_Array_of_args(char* command){
         }
     }
     args[count] = NULL;
-    for(int i=0;i<count;i++){
-        printf("%s\n",args[i]);
-    }
+    // printf("%s\n",args[0]);
+    // for(int i=0;i<count;i++){
+    //     printf("%s\n",args[i]);
+    // }
     return args;
 }
 
