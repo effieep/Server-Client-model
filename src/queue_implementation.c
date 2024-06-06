@@ -56,6 +56,7 @@ void Exec_Enqueue(control *ctrl,job_triplet* job){
 
 void Enqueue(control *ctrl,char* command,int clientfd){
     node* new = malloc(sizeof(node));
+    printf("Clientfd in Enqueue is : %d\n",clientfd);
     if(new != NULL){
         new->job = malloc(sizeof(job_triplet));
         new->next = NULL;

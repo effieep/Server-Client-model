@@ -42,6 +42,7 @@ void Place_to_Buffer(int sockfd,char* command){
 }
 
 void issueJob(int cl_socket,char* command){
+    printf("In issueJob sockfd is : %d\n",cl_socket);
     Place_to_Buffer(cl_socket,command);
     job_triplet* job_rem = buffer.rear->job;
 
@@ -194,10 +195,11 @@ void Return_job_output(job_triplet* job,int pid){
 
     strcat(id,".out");
 
-    if ( (fd = open(id, O_RDWR | O_APPEND, PERMS)) == -1){
-        perror("creating");
-        exit(1);
-    }
+    // if ( (fd = open(id, O_RDWR | O_APPEND, PERMS)) == -1){
+    //     perror("creating");
+    //     exit(1);
+    // }
+
     // char buffer[BUFF_SIZE];
     // int bytes_read,bytes_written;
     // while ((bytes_read = read(fd, buffer, BUFF_SIZE)) > 0) {
@@ -216,12 +218,10 @@ void Return_job_output(job_triplet* job,int pid){
     strcat(endline,job->job_id);
     strcat(endline," output end-----");
     
-    
     //Write_to_Commander(job->client_socket,endline);
 
     free(endline);
     free(startline);
-    close(fd);
 }
 
 void Exec_Job(job_triplet* exec_job){
@@ -249,6 +249,7 @@ void Exec_Job(job_triplet* exec_job){
             }
         }
     }
+    //Write_to_Commander(exec_job->client_socket,"TESTTEST\n");
     Return_job_output(exec_job,pid);
     dup2(stdoutCopy,1);
     close(stdoutCopy);

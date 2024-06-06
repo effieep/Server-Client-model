@@ -82,7 +82,6 @@ void *Controller_Thread(void* arg) {
     printf("Command read is: %s\n",command);
     switch_command(newsock,command);
     printf("Closing connection.\n");
-    close(newsock);
     return NULL;
 }
 
@@ -136,7 +135,7 @@ void Accept_Clients(char** argv){
         /* accept connection */
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");
         /* must be closed before it gets re-assigned */   
-        printf("Accepted connection\n");
+        printf("Accepted connection in socket %d\n",newsock);
         int err, status;
         pthread_t thr;
         int* arg = malloc(sizeof(int));
@@ -167,6 +166,7 @@ void Accept_Clients(char** argv){
             perror2("pthread_join", err); /* termination */
             exit(1); 
         }
+        close(newsock);
     }
     close(sock);
 }

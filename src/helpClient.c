@@ -49,12 +49,11 @@ char* int_to_string(int n){
 
 void Read_from_Server(int socketfd){
     char buff2[BUFF_SIZE];
-
+    strcpy(buff2,"");
     if(read(socketfd, buff2, sizeof(buff2)) == -1){
         perror("read");
     }
     printf("%s", buff2);
-    close(socketfd);
 }
 
 void Write_to_Server(int socketfd,int argc,char** argv){
@@ -102,7 +101,7 @@ void Connect_to_Server(int argc,char** argv){
         perror("connect");
     }
     printf("Connecting to %s port %d\n", argv[1], portnum);
-
+    printf("Client socket is : %d",sockfd);
     Write_to_Server(sockfd,argc,argv);
     Read_from_Server(sockfd);
     //select read and check file descriptors its time
