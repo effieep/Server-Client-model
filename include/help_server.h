@@ -26,7 +26,7 @@ char* int_to_string(int );
 
 void switch_command(int, char* );          
 
-void Read_from_Commander(int,char*);
+char* Read_from_Commander(int);
 void Write_to_Commander(int,char*);
 
 void Manage_Jobs();

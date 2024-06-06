@@ -59,26 +59,52 @@ void perror_exit(char *message) {
 }
 
 void Write_to_Commander(int socketfd,char* buff){
-    if(write(socketfd, buff,strlen(buff)+1) == -1){
+    buff[strlen(buff)] = '\0'; 
+    printf("String to be sent is %s\n",buff);
+    int length = strlen(buff) + 1;
+    printf("length %d\n",length);
+    char* res = malloc((length+10) * sizeof(char));
+    char* l = int_to_string(length);
+    strcpy(res,"");
+    strcat(res,l);
+    strcat(res," ");
+    strcat(res,buff);
+    printf("Response is :%s\n",res);
+    if(write(socketfd,res,strlen(res)+1) == -1){
         perror("write");
         exit(1);
     }
 }
 
-void Read_from_Commander(int socketfd,char* command){
-    if(read(socketfd, command,BUFF_SIZE) == -1){
+char* Read_from_Commander(int socketfd){
+    char ch;
+    int bytes_read;
+    char *size = malloc(10*sizeof(char));
+    int i = 0;
+    while ((bytes_read = read(socketfd, &ch, 1)) > 0) {
+        printf("char is : %d\n",ch);
+        if (ch == ' ' || ch == '\n') {
+            break;
+        }
+        size[i] = ch;
+        i++;
+    }
+    int s = atoi(size);
+    printf("size is %d;\n",s);
+    char *buffer = malloc(s *sizeof(char));
+    if(read(socketfd,buffer,s) == -1){
         perror("read");
         exit(EXIT_FAILURE);
     }
+    free(size);
+    return buffer;
 }
 
 
 void *Controller_Thread(void* arg) {
     int newsock = *((int*)arg);
     printf("Argument passed is %d\n",newsock);
-    char command[BUFF_SIZE] = "";
-    memset( command, '\0', sizeof(command)/sizeof(command[0]));
-    Read_from_Commander(newsock,command);
+    char *command = Read_from_Commander(newsock);
     printf("Command read is: %s\n",command);
     switch_command(newsock,command);
     printf("Closing connection.\n");

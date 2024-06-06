@@ -183,42 +183,39 @@ int Create_File(pid_t pid,char* jobid){
 
 void Return_job_output(job_triplet* job,int pid){
     int fd;
+    char* output = malloc(BUFF_SIZE*sizeof(char));
     //Create first line of the output
     char *startline = malloc(30*sizeof(char));
     strcpy(startline,"-----");
     strcat(startline,job->job_id);
     strcat(startline," output start-----\n\n");
-    Write_to_Commander(job->client_socket,startline);
+
+    strcat(output,startline);
     //Specify the filename of pid.out
     char* id = malloc(10*sizeof(char));
     id = int_to_string(pid);
-
     strcat(id,".out");
 
-    // if ( (fd = open(id, O_RDWR | O_APPEND, PERMS)) == -1){
-    //     perror("creating");
-    //     exit(1);
-    // }
+    if ( (fd = open(id, O_RDWR | O_APPEND, PERMS)) == -1){
+        perror("creating");
+        exit(1);
+    }
+    //check how many chars th file contains and allocate them 
+    char* file_output = malloc(BUFF_SIZE*sizeof(char));
+    int bytes_read;
+    while ((bytes_read = read(fd, file_output, BUFF_SIZE)) > 0) {
+        printf("Read %d bytes from the output file\n",bytes_read);
+    }
 
-    // char buffer[BUFF_SIZE];
-    // int bytes_read,bytes_written;
-    // while ((bytes_read = read(fd, buffer, BUFF_SIZE)) > 0) {
-    //     bytes_written = write(job->client_socket, buffer, bytes_read);
-    //     if (bytes_written != bytes_read) {
-    //         perror("write");
-    //         close(fd);
-    //         exit(EXIT_FAILURE);
-    //     }
-    // }
-
-
+    strcat(output,file_output);
     // Create the last line of the output
     char *endline = malloc(30*sizeof(char));
     strcpy(endline,"\n-----");
     strcat(endline,job->job_id);
     strcat(endline," output end-----");
     
-    //Write_to_Commander(job->client_socket,endline);
+    strcat(output,endline);
+    Write_to_Commander(job->client_socket,output);
 
     free(endline);
     free(startline);

@@ -48,12 +48,25 @@ char* int_to_string(int n){
 }
 
 void Read_from_Server(int socketfd){
-    char buff2[BUFF_SIZE];
-    strcpy(buff2,"");
-    if(read(socketfd, buff2, sizeof(buff2)) == -1){
-        perror("read");
+    char ch;
+    int bytes_read;
+    char *size = malloc(10*sizeof(char));
+    int i = 0;
+    while ((bytes_read = read(socketfd, &ch, 1)) > 0) {
+        if (ch == ' ' || ch == '\n') {
+            break;
+        }
+        size[i] = ch;
+        i++;
     }
-    printf("%s", buff2);
+    int s = atoi(size);
+    printf("size is %d;\n",s);
+    char *buffer = malloc(s *sizeof(char));
+    if(read(socketfd,buffer,s) == -1){
+        perror("read");
+        exit(EXIT_FAILURE);
+    }
+    printf("%s\n",buffer);
 }
 
 void Write_to_Server(int socketfd,int argc,char** argv){
@@ -68,9 +81,17 @@ void Write_to_Server(int socketfd,int argc,char** argv){
     buff1[strlen(buff1)] = '\0'; 
     printf("String to be sent is %s\n",buff1);
     int length = strlen(buff1) + 1;
-    if(write(socketfd, buff1, length) == -1){   //Pass the string
+    printf("length %d\n",length);
+    char* buff = malloc((length+10) * sizeof(char));
+    char* l = int_to_string(length);
+    strcpy(buff,"");
+    strcat(buff,l);
+    strcat(buff," ");
+    strcat(buff,buff1);
+    printf("buff is :%s\n",buff);
+    if(write(socketfd, buff,strlen(buff)+1) == -1){
         perror("write");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 }
 
@@ -105,6 +126,8 @@ void Connect_to_Server(int argc,char** argv){
     Write_to_Server(sockfd,argc,argv);
     Read_from_Server(sockfd);
     //select read and check file descriptors its time
-    Read_from_Server(sockfd);
+    if(strcmp(argv[3],"issueJob")== 0){
+        Read_from_Server(sockfd);
+    }
     close(sockfd);
 }
