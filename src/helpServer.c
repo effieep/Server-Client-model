@@ -42,6 +42,7 @@ char* string_reverse(char *str){
 
 char* int_to_string(int n){
     char *str_num = malloc(10*sizeof(char));
+    memset(str_num,'\0',10*sizeof(char));
     int i=0;
     while(n>0){
         char digit = n%10 + '0';
@@ -59,7 +60,6 @@ void perror_exit(char *message) {
 }
 
 void Write_to_Commander(int socketfd,char* buff){
-    buff[strlen(buff)] = '\0'; 
     printf("String to be sent is %s\n",buff);
     int length = strlen(buff) + 1;
     printf("length %d\n",length);
@@ -74,6 +74,7 @@ void Write_to_Commander(int socketfd,char* buff){
         perror("write");
         exit(1);
     }
+    //free(res);
 }
 
 char* Read_from_Commander(int socketfd){
@@ -96,7 +97,7 @@ char* Read_from_Commander(int socketfd){
         perror("read");
         exit(EXIT_FAILURE);
     }
-    free(size);
+    // free(size);
     return buffer;
 }
 

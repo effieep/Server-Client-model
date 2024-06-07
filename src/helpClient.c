@@ -37,6 +37,7 @@ char* string_reverse(char *str){
 
 char* int_to_string(int n){
     char *str_num = malloc(10*sizeof(char));
+    memset(str_num,'\0',10*sizeof(char));
     int i=0;
     while(n>0){
         char digit = n%10 + '0';
@@ -70,26 +71,23 @@ void Read_from_Server(int socketfd){
 }
 
 void Write_to_Server(int socketfd,int argc,char** argv){
-    char buff1[BUFF_SIZE] = "";
-    buff1[0] = '\0';
+   int sum = 0;
+    for(int i=3;i<argc;i++){
+        sum = sum + strlen(argv[i]) + 1;    //1 for a space character for every argument
+    }
+    char *buff1 = malloc((sum+10) * sizeof(char));  //+10 for the max 10 digits of number
+    memset(buff1,'\0',sum*sizeof(char));
+    char* l = int_to_string(sum);
+    strcat(buff1,l);
+    strcat(buff1," ");
     for(int i=3;i<argc;i++){
         strcat(buff1, argv[i]);
         if(i < argc-1){
             strcat(buff1," ");    //don't add space character at the end
         }
     }
-    buff1[strlen(buff1)] = '\0'; 
     printf("String to be sent is %s\n",buff1);
-    int length = strlen(buff1) + 1;
-    printf("length %d\n",length);
-    char* buff = malloc((length+10) * sizeof(char));
-    char* l = int_to_string(length);
-    strcpy(buff,"");
-    strcat(buff,l);
-    strcat(buff," ");
-    strcat(buff,buff1);
-    printf("buff is :%s\n",buff);
-    if(write(socketfd, buff,strlen(buff)+1) == -1){
+    if(write(socketfd, buff1,strlen(buff1)+1) == -1){
         perror("write");
         exit(1);
     }

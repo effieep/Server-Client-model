@@ -57,7 +57,7 @@ void issueJob(int cl_socket,char* command){
     strcat(buff," ");
     strcat(buff,"SUBMITTED\n");
     Write_to_Commander(cl_socket,buff);
-    free(buff);
+    //free(buff);
 }
 
 void setConcurrency(int sockfd,char* num){
@@ -96,9 +96,9 @@ void Stop_Job(int sockfd,char* job_ID){
         strcat(message,"NOT FOUND\n");
     }
     Write_to_Commander(sockfd,message);
-    free(buff);
-    free(message);
-    free(id);
+    // free(buff);
+    // free(message);
+    // free(id);
 }
 
 void Poll(int sockfd){
@@ -106,7 +106,7 @@ void Poll(int sockfd){
     char* out = Queue_Output(&buffer);
     strcpy(buff,out);
     Write_to_Commander(sockfd,buff);
-    free(buff);
+    //free(buff);
 }
 
 void Exit_Call(int sockfd){
@@ -122,7 +122,7 @@ void Exit_Call(int sockfd){
     }
     Destroy_Queue(&buffer);
     Write_to_Commander(sockfd,response);
-    free(response);
+    //free(response);
     exit(0);
 }
 
@@ -147,7 +147,7 @@ void switch_command(int sockfd, char* comm){
         }
         result[strlen(result) - 1] = '\0';
         issueJob(sockfd,result);
-        free(result);
+        //free(result);
     }else if(strcmp(tok,"setConcurrency")==0){
         printf("setConcurrency case\n");
         char *num = strtok(NULL, delim); 
@@ -162,7 +162,7 @@ void switch_command(int sockfd, char* comm){
     }else{
         printf("Command does not exists.Try again!\n");
     }
-    free(temp);
+    //free(temp);
 }
 int Create_File(pid_t pid,char* jobid){
     int fd;
@@ -177,20 +177,12 @@ int Create_File(pid_t pid,char* jobid){
         perror("creating");
         exit(1);
     }
-    free(id);
+    //free(id);
     return fd;
 }
 
 void Return_job_output(job_triplet* job,int pid){
     int fd;
-    char* output = malloc(BUFF_SIZE*sizeof(char));
-    //Create first line of the output
-    char *startline = malloc(30*sizeof(char));
-    strcpy(startline,"-----");
-    strcat(startline,job->job_id);
-    strcat(startline," output start-----\n\n");
-
-    strcat(output,startline);
     //Specify the filename of pid.out
     char* id = malloc(10*sizeof(char));
     id = int_to_string(pid);
@@ -200,25 +192,47 @@ void Return_job_output(job_triplet* job,int pid){
         perror("creating");
         exit(1);
     }
+
+    //Calculate the size of file
+    struct stat file_status;
+    if (stat(id, &file_status) < 0) {
+        perror("stat");
+        exit(EXIT_FAILURE);
+    }
+    int fsize = file_status.st_size;
+    printf("size of the file is: %d\n",fsize);
+
+    //Allocate appropriate memory
+    char* output = malloc((fsize+65)*sizeof(char));
+    memset(output,'\0',(fsize+65)*sizeof(char));
+
+    //Create first line of the output
+    char *startline = malloc(30*sizeof(char));
+    strcpy(startline,"-----");
+    strcat(startline,job->job_id);
+    strcat(startline," output start-----\n\n");
+
+    //Add first line
+    strcat(output,startline);
+
     //check how many chars th file contains and allocate them 
     char* file_output = malloc(BUFF_SIZE*sizeof(char));
     int bytes_read;
     while ((bytes_read = read(fd, file_output, BUFF_SIZE)) > 0) {
         printf("Read %d bytes from the output file\n",bytes_read);
+        strcat(output,file_output);
+        memset(file_output,'\0',BUFF_SIZE*sizeof(char));
     }
-
-    strcat(output,file_output);
     // Create the last line of the output
     char *endline = malloc(30*sizeof(char));
     strcpy(endline,"\n-----");
     strcat(endline,job->job_id);
     strcat(endline," output end-----");
-    
     strcat(output,endline);
     Write_to_Commander(job->client_socket,output);
 
-    free(endline);
-    free(startline);
+    // free(endline);
+    // free(startline);
 }
 
 void Exec_Job(job_triplet* exec_job){
@@ -241,7 +255,7 @@ void Exec_Job(job_triplet* exec_job){
         }else {                         //child process
             fd = Create_File(getpid(),exec_job->job_id);
             dup2(fd,1);
-            if(execvp("ls",args)==-1){
+            if(execvp(args[0],args)==-1){
                 perror("execv");
             }
         }
