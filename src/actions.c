@@ -57,7 +57,7 @@ void issueJob(int cl_socket,char* command){
     strcat(buff," ");
     strcat(buff,"SUBMITTED\n");
     Write_to_Commander(cl_socket,buff);
-    //free(buff);
+    free(buff);
 }
 
 void setConcurrency(int sockfd,char* num){
@@ -68,6 +68,7 @@ void setConcurrency(int sockfd,char* num){
     strcat(response,"\n");
     printf("Response is %s\n",response);
     Write_to_Commander(sockfd,response);
+    free(response);
 }
 
 void Stop_Job(int sockfd,char* job_ID){
@@ -96,9 +97,9 @@ void Stop_Job(int sockfd,char* job_ID){
         strcat(message,"NOT FOUND\n");
     }
     Write_to_Commander(sockfd,message);
-    // free(buff);
-    // free(message);
-    // free(id);
+    free(buff);
+    free(message);
+    free(id);
 }
 
 void Poll(int sockfd){
@@ -106,7 +107,7 @@ void Poll(int sockfd){
     char* out = Queue_Output(&buffer);
     strcpy(buff,out);
     Write_to_Commander(sockfd,buff);
-    //free(buff);
+    free(buff);
 }
 
 void Exit_Call(int sockfd){
@@ -122,7 +123,7 @@ void Exit_Call(int sockfd){
     }
     Destroy_Queue(&buffer);
     Write_to_Commander(sockfd,response);
-    //free(response);
+    free(response);
     exit(0);
 }
 
@@ -147,7 +148,7 @@ void switch_command(int sockfd, char* comm){
         }
         result[strlen(result) - 1] = '\0';
         issueJob(sockfd,result);
-        //free(result);
+        free(result);
     }else if(strcmp(tok,"setConcurrency")==0){
         printf("setConcurrency case\n");
         char *num = strtok(NULL, delim); 
@@ -162,7 +163,7 @@ void switch_command(int sockfd, char* comm){
     }else{
         printf("Command does not exists.Try again!\n");
     }
-    //free(temp);
+    free(temp);
 }
 int Create_File(pid_t pid,char* jobid){
     int fd;
@@ -177,7 +178,8 @@ int Create_File(pid_t pid,char* jobid){
         perror("creating");
         exit(1);
     }
-    //free(id);
+    free(filename);
+    free(id);
     return fd;
 }
 
@@ -229,10 +231,19 @@ void Return_job_output(job_triplet* job,int pid){
     strcat(endline,job->job_id);
     strcat(endline," output end-----");
     strcat(output,endline);
+
+    //Respond to the Client
     Write_to_Commander(job->client_socket,output);
 
-    // free(endline);
-    // free(startline);
+    //Delete the file created for the specific process
+    if(unlink(id) < 0){
+        perror("unlink");
+    }
+    free(id);
+    free(file_output);
+    free(output);
+    free(endline);
+    free(startline);
 }
 
 void Exec_Job(job_triplet* exec_job){
@@ -260,7 +271,6 @@ void Exec_Job(job_triplet* exec_job){
             }
         }
     }
-    //Write_to_Commander(exec_job->client_socket,"TESTTEST\n");
     Return_job_output(exec_job,pid);
     dup2(stdoutCopy,1);
     close(stdoutCopy);

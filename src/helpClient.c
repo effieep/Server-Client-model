@@ -123,7 +123,7 @@ void Connect_to_Server(int argc,char** argv){
     printf("Client socket is : %d",sockfd);
     Write_to_Server(sockfd,argc,argv);
     Read_from_Server(sockfd);
-    //select read and check file descriptors its time
+    
     if(strcmp(argv[3],"issueJob")== 0){
         Read_from_Server(sockfd);
     }

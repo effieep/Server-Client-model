@@ -74,7 +74,8 @@ void Write_to_Commander(int socketfd,char* buff){
         perror("write");
         exit(1);
     }
-    //free(res);
+    free(l);
+    free(res);
 }
 
 char* Read_from_Commander(int socketfd){
@@ -97,7 +98,7 @@ char* Read_from_Commander(int socketfd){
         perror("read");
         exit(EXIT_FAILURE);
     }
-    // free(size);
+    free(size);
     return buffer;
 }
 
@@ -108,6 +109,7 @@ void *Controller_Thread(void* arg) {
     char *command = Read_from_Commander(newsock);
     printf("Command read is: %s\n",command);
     switch_command(newsock,command);
+    free(command);
     printf("Closing connection.\n");
     return NULL;
 }
@@ -193,6 +195,7 @@ void Accept_Clients(char** argv){
             perror2("pthread_join", err); /* termination */
             exit(1); 
         }
+        free(arg);
         close(newsock);
     }
     close(sock);
