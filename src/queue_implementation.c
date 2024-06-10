@@ -1,7 +1,5 @@
-#include <stdbool.h>
-
-#include "queue.h"
 #include "help_server.h"
+#include "queue.h"
 
 void Initialize_control_queue(control* ctrl,int bufsize){
     ctrl->front = NULL;
@@ -182,6 +180,7 @@ bool Remove_Job(control* c,char* id){
         do
         {   //Check if the job_id is th same
             if(strcmp(main_cursor->job->job_id,id) == 0){
+                Write_to_Commander(main_cursor->job->client_socket,"Job could not be executed because it was removed\n");
                 Remove_node(c,prev,main_cursor);
                 found = true;
                 break;

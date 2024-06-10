@@ -33,6 +33,7 @@ void Manage_Jobs();
 void *Controller_Thread(void*);
 void Accept_Clients(char**);
 
-void Place_to_Buffer(int sockfd,char* command);
+void Place_to_Buffer(int ,char*);
 void lock();
 void unlock();
+void Inform_Worker_Threads(int );

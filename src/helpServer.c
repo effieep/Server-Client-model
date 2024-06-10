@@ -114,7 +114,7 @@ void *Controller_Thread(void* arg) {
     switch_command(newsock,command);
     free(command);
     free(arg); 
-    printf("Closing connection.\n");
+    printf("Exit Controller Thread\n");
     pthread_exit(NULL);
 }
 
@@ -137,6 +137,7 @@ void Place_to_Buffer(int sockfd,char* command){
     }
     printf("Thread %ld woke up to place a job to buffer!\n",(unsigned long)pthread_self());
     Enqueue(buff,command,sockfd);
+    printf("Sending signal fill\n");
     pthread_cond_signal(&fill);
     if((err = (pthread_mutex_unlock(&bmtx))) < 0){
         perror2("mutex_unlock",err);
@@ -144,31 +145,59 @@ void Place_to_Buffer(int sockfd,char* command){
 }
 
 job_triplet* Read_Buffer(){
+    int err;
+    if((err = (pthread_mutex_lock(&bmtx))) < 0){
+        perror2("mutex_lock",err);
+    }
     control* buff = get_buffer();
     while(buff->jobs_in_queue == 0){
         printf("Buffer Empty case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
         pthread_cond_wait(&fill,&bmtx);
     }
-    while(executing == getconcurrency()){
-        printf("Concurrency reached case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
-        pthread_cond_wait(&concurr,&bmtx);
-    }
     printf("Thread %ld woke up to read a job from buffer!\n",(unsigned long)pthread_self());
     job_triplet* job = Dequeue(buff);
+    if((err = (pthread_mutex_unlock(&bmtx))) < 0){
+        perror2("mutex_unlock",err);
+    }
+    printf("Sending signal empty\n");
     pthread_cond_signal(&empty);        //there is free space now in the buffer so a new job can be added
     return job;
 }
 
 void lock(){
     int err;
-    if((err = (pthread_mutex_lock(&bmtx))) < 0){
+    if((err = (pthread_mutex_lock(&emtx))) < 0){
         perror2("mutex_lock",err);
     }
 }
 
 void unlock(){
     int err;
-    if((err = (pthread_mutex_unlock(&bmtx))) < 0){
+    if((err = (pthread_mutex_unlock(&emtx))) < 0){
+        perror2("mutex_unlock",err);
+    }
+}
+
+void Inform_Worker_Threads(int concurrency){
+    if(concurrency > executing){
+        int enable = concurrency - executing;
+        for(int i=0;i<enable;i++){
+            pthread_cond_signal(&concurr);
+        }
+    }
+}
+
+void Check_concurrency(){
+    int err;
+    if((err = (pthread_mutex_lock(&emtx))) < 0){
+        perror2("mutex_lock",err);
+    }
+
+    while(executing >= getconcurrency()){
+        printf("Concurrency reached case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
+        pthread_cond_wait(&concurr,&emtx);
+    }
+    if((err = (pthread_mutex_unlock(&emtx))) < 0){
         perror2("mutex_unlock",err);
     }
 }
@@ -177,27 +206,31 @@ void *Worker_Thread(void *args){
     bool restart = 1;
     int err;
     do{
-        if((err = (pthread_mutex_lock(&bmtx))) < 0){
-            perror2("mutex_lock",err);
-        }
-        job_triplet* job = Read_Buffer();
-        if((err = (pthread_mutex_unlock(&bmtx))) < 0){
-            perror2("mutex_unlock",err);
-        }
-        printf("Job retrieved is: %s %s,%d\n",job->job_id,job->command,job->client_socket);
-        //Execute the job
+        Check_concurrency();
         if((err = (pthread_mutex_lock(&emtx))) < 0){
             perror2("mutex_lock",err);
         }
         executing++;
-        Exec_Job(job);
-        printf("Closing connection.\n");
-        close(job->client_socket);
-        executing--;
+        printf("Before exec : %d\n",executing);
         if((err = (pthread_mutex_unlock(&emtx))) < 0){
             perror2("mutex_unlock",err);
         }
-        pthread_cond_signal(&concurr);
+        job_triplet* job = Read_Buffer();
+        if(job == NULL) continue;
+        printf("Job retrieved is: %s %s,%d\n",job->job_id,job->command,job->client_socket);
+        //Execute the job
+        Exec_Job(job);
+        printf("Closing connection.\n");
+        close(job->client_socket);
+        if((err = (pthread_mutex_lock(&emtx))) < 0){
+            perror2("mutex_lock",err);
+        }
+        executing--;
+        printf("After exec : %d\n",executing);
+        if((err = (pthread_mutex_unlock(&emtx))) < 0){
+            perror2("mutex_unlock",err);
+        }
+        
     }while(restart);
     return NULL;   
 }
@@ -230,9 +263,6 @@ void Accept_Clients(char** argv){
     printf("Listening for connections to port %d\n", port);
 
     // Create threadPoolSize worker threads
-    // if((err = (pthread_mutex_lock(&mutex))) < 0){
-    //     perror2("mutex_unlock",err);
-    // }
     pthread_t workers[threadPoolSize];
     for(int i=0;i<threadPoolSize;i++){
         if ((err = pthread_create(&workers[i], NULL, Worker_Thread, NULL))!=0) { /* New thread */
@@ -241,15 +271,11 @@ void Accept_Clients(char** argv){
         }
     }
     for(int i=0;i<threadPoolSize;i++){
-        if ((err = pthread_detach(workers[i]))!=0) { /* New thread */
+        if ((err = pthread_detach(workers[i]))!=0) { 
             perror2("pthread_create", err);
             exit(1); 
         }
     }
-    // printf("Unlock shared data\n");
-    // if((err = (pthread_mutex_unlock(&mutex))) < 0){
-    //     perror2("mutex_unlock",err);
-    // }
 
     while (1) {
         printf("Waiting for connection...\n");

@@ -27,6 +27,7 @@ void issueJob(int cl_socket,char* command){
 void setConcurrency(int sockfd,char* num){
     lock();
     concurrencyLevel = atoi(num);
+    Inform_Worker_Threads(concurrencyLevel);
     unlock();
     char *response = malloc(21 *sizeof(char));
     strcpy(response,"CONCURRENCY SET AT ");
@@ -173,7 +174,6 @@ void Return_job_output(job_triplet* job,int pid){
 
     //Allocate appropriate memory
     char* output = malloc((fsize+80)*sizeof(char));
-    memset(output,'\0',(fsize+80)*sizeof(char));
 
     //Create first line of the output
     char *startline = malloc(30*sizeof(char));
@@ -201,7 +201,7 @@ void Return_job_output(job_triplet* job,int pid){
 
     //Respond to the Client
     Write_to_Commander(job->client_socket,output);
-
+    memset(output,'\0',(fsize+80)*sizeof(char));
     //Delete the file created for the specific process
     if(unlink(id) < 0){
         perror("unlink");
