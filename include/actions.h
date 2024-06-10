@@ -27,3 +27,5 @@ void Exit_Call();
 void switch_command(int, char*);
 job_triplet* Read_Buffer();
 void Exec_Job(job_triplet*);
+control* get_buffer();
+int getconcurrency();

@@ -32,3 +32,7 @@ void Write_to_Commander(int,char*);
 void Manage_Jobs();
 void *Controller_Thread(void*);
 void Accept_Clients(char**);
+
+void Place_to_Buffer(int sockfd,char* command);
+void lock();
+void unlock();

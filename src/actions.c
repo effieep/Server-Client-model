@@ -4,42 +4,6 @@
 
 static int concurrencyLevel = 1;
 static control buffer,c_executing;
-char *workfile="jobExecutorServer.txt";
-
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t empty,fill;
-
-void handle_enable_server(int signo){
-    printf("Server activated!\n");
-}  
-
-void child_handler(int signo){
-    int status;
-    pid_t pid;
-    printf("Signal that child terminated!\n");
-
-    pid = waitpid(-1, &status, WNOHANG);
-    if (pid > 0) {
-        if (WIFEXITED(status)) {
-            printf("Child process %d terminated normally with exit status: %d\n", pid, WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            printf("Child process %d terminated by signal: %d\n", pid, WTERMSIG(status));
-        }
-    } else if (pid == -1) {
-        perror("waitpid");
-    }
-}
-
-void Place_to_Buffer(int sockfd,char* command){
-    pthread_mutex_lock(&mutex);
-    //If buffer is full put thread in sleeping mode 
-    while(buffer.jobs_in_queue == buffer.max_jobs){
-        pthread_cond_wait(&empty,&mutex);
-    }
-    Enqueue(&buffer,command,sockfd);
-    pthread_cond_signal(&fill);
-    pthread_mutex_unlock(&mutex);
-}
 
 void issueJob(int cl_socket,char* command){
     printf("In issueJob sockfd is : %d\n",cl_socket);
@@ -61,7 +25,9 @@ void issueJob(int cl_socket,char* command){
 }
 
 void setConcurrency(int sockfd,char* num){
+    lock();
     concurrencyLevel = atoi(num);
+    unlock();
     char *response = malloc(21 *sizeof(char));
     strcpy(response,"CONCURRENCY SET AT ");
     strcat(response,num);
@@ -165,6 +131,7 @@ void switch_command(int sockfd, char* comm){
     }
     free(temp);
 }
+
 int Create_File(pid_t pid,char* jobid){
     int fd;
     printf("fd = %d\n",fd);
@@ -205,8 +172,8 @@ void Return_job_output(job_triplet* job,int pid){
     printf("size of the file is: %d\n",fsize);
 
     //Allocate appropriate memory
-    char* output = malloc((fsize+65)*sizeof(char));
-    memset(output,'\0',(fsize+65)*sizeof(char));
+    char* output = malloc((fsize+80)*sizeof(char));
+    memset(output,'\0',(fsize+80)*sizeof(char));
 
     //Create first line of the output
     char *startline = malloc(30*sizeof(char));
@@ -239,11 +206,11 @@ void Return_job_output(job_triplet* job,int pid){
     if(unlink(id) < 0){
         perror("unlink");
     }
-    free(id);
-    free(file_output);
-    free(output);
-    free(endline);
-    free(startline);
+    // free(id);
+    // free(file_output);
+    // free(output);
+    // free(endline);
+    // free(startline);
 }
 
 void Exec_Job(job_triplet* exec_job){
@@ -258,7 +225,7 @@ void Exec_Job(job_triplet* exec_job){
         if(pid == -1){
             perror("fork");
         }else if(pid > 0){              //parent process
-            if (wait(&status) == -1) {
+            if (waitpid(pid,&status,0) == -1) {
                 // wait failed
                 perror("wait");
                 exit(EXIT_FAILURE);
@@ -304,18 +271,6 @@ void Fill_Exec_Queue(){
     }
 }
 
-void Manage_Jobs(){
-    job_triplet *exec_job;
-    int keep_going = 1;
-    //SIGCHLD handler
-    static struct sigaction act;
-    act.sa_handler= child_handler;
-    sigaction(SIGCHLD, &act, NULL);
-
-    Fill_Exec_Queue();
-    //Exec_Jobs();
-}
-
 char** Create_Array_of_args(char* command){
     char temp1[100],temp2[100];
     strcpy(temp1,command);
@@ -359,18 +314,11 @@ void Initialize_buffer(int bufferSize){
     Initialize_control_queue(&buffer,bufferSize);
 }
 
-void Cond_Initialization(){
-    pthread_cond_init(&fill, NULL); /* Initialize condition variable */
-    pthread_cond_init(&empty, NULL); 
+control* get_buffer(){
+    return &buffer;
 }
 
-job_triplet* Read_Buffer(){
-    pthread_mutex_lock(&mutex);
-    while(buffer.jobs_in_queue == 0){
-        pthread_cond_wait(&fill,&mutex);
-    }
-    job_triplet* job = Dequeue(&buffer);
-    pthread_cond_signal(&empty);
-    pthread_mutex_unlock(&mutex);
-    return job;
+
+int getconcurrency(){
+    return concurrencyLevel;
 }

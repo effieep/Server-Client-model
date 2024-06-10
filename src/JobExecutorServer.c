@@ -12,10 +12,12 @@ int main(int argc,char *argv[]){
     int threadPoolSize = atoi(argv[3]);
     if(portnum<1024 || portnum>65535){
         printf("Wrong portNum...Choose a port between 1024 and 65535\n");
-    }else if(bufferSize<=0){
+    }
+    if(bufferSize<=0){
         printf("Wrong bufferSize...\n");
-    }else if(threadPoolSize<=0){
-        printf("Wrong input...\n");
+    }
+    if(threadPoolSize<=0){
+        printf("Wrong threadPoolSize...\n");
     }
     Accept_Clients(argv);
 }
