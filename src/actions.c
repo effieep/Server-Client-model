@@ -243,34 +243,6 @@ void Exec_Job(job_triplet* exec_job){
     close(stdoutCopy);
 }
 
-void Fill_Exec_Queue(){
-    job_triplet* curr_job;
-    int jobs;
-
-    jobs = concurrencyLevel - c_executing.jobs_in_queue;
-    if(jobs>0){         //more jobs can be added in the executing queue
-        for(int i=1;i<=jobs;i++){
-            if(buffer.jobs_in_queue > 0){
-                curr_job = Dequeue(&buffer);
-                Exec_Enqueue(&c_executing,curr_job);    
-            }
-        }
-    }else{              //some jobs must be removed from the executing queue
-        jobs = c_executing.jobs_in_queue - concurrencyLevel;
-        for(int i=1;i<=jobs;i++){
-            if(c_executing.front != NULL){
-                job_triplet* removed = c_executing.front->job;
-                bool found = Remove_Job(&c_executing,removed->job_id);
-                if(found){
-                    printf("Job removed\n");
-                }
-            }else{
-                break;
-            }
-        }
-    }
-}
-
 char** Create_Array_of_args(char* command){
     char temp1[100],temp2[100];
     strcpy(temp1,command);
