@@ -4,8 +4,8 @@
 void Initialize_control_queue(control* ctrl,int bufsize){
     ctrl->front = NULL;
     ctrl->rear = NULL;
-    ctrl->jobs_in_queue = 0;                //indicator of queue_position
-    ctrl->total_jobs=0;                     //indicator of id
+    ctrl->jobs_in_queue = 0;           //indicator of queue_position
+    ctrl->total_jobs=0;                //indicator of id
     ctrl->max_jobs = bufsize;
 }
 
@@ -27,29 +27,6 @@ void Initialize_Job(job_triplet* job,char* comm,control* ctrl,int cl_socket){
     job->queue_position = ctrl->jobs_in_queue;
     job->pid = 0;
     job->client_socket = cl_socket;
-}
-
-void Exec_Enqueue(control *ctrl,job_triplet* job){
-    node* new = malloc(sizeof(node));
-    if(new != NULL){
-        new->job = malloc(sizeof(job_triplet));
-        new->next = NULL;
-        if(ctrl->front== NULL){         //if list is empty
-            ctrl->front = new;
-            ctrl->rear = new;
-        }
-        else{                           //If list is not empty
-            ctrl->rear->next = new;     //add the new node to the end of the list
-            ctrl->rear = new;
-        }
-        ctrl->jobs_in_queue++;
-        ctrl->total_jobs++;
-        new->job = job;
-        //fix queue position
-        new->job->queue_position = ctrl->jobs_in_queue;
-    }else{
-        printf("Failed to allocate memory\n");
-    }
 }
 
 void Enqueue(control *ctrl,char* command,int clientfd){
@@ -149,26 +126,6 @@ void Remove_node(control*c,node* prev,node* current){
     free(current);
 }
 
-//Termination of a child process use
-void Remove_Pid(control* c,pid_t pid){
-    node* main_cursor;
-    node* prev;
-    main_cursor = c->front;
-    prev = NULL;
-    if(main_cursor != NULL){
-        do  
-        {   //check if the pid is the same
-            if(main_cursor->job->pid == pid){
-                Remove_node(c,prev,main_cursor);
-                break;
-            }
-            prev = main_cursor;
-            main_cursor = main_cursor->next;
-        } while (main_cursor != NULL);
-    }
-    printf("\n");
-}
-
 //Stop use
 bool Remove_Job(control* c,char* id){
     node* main_cursor;
@@ -193,7 +150,7 @@ bool Remove_Job(control* c,char* id){
 }
 
 
-//Poll use [runnning,queued]
+//Poll use
 char* Queue_Output(control* c){
     node* main_cursor;
     char* output = malloc(BUFF_SIZE*sizeof(char));

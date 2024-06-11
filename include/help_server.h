@@ -22,9 +22,7 @@
 
 void swap_chars(char*,char* );
 char* string_reverse(char *);
-char* int_to_string(int );
-
-void switch_command(int, char* );          
+char* int_to_string(int );        
 
 char* Read_from_Commander(int);
 void Write_to_Commander(int,char*);
@@ -36,4 +34,12 @@ void Accept_Clients(char**);
 void Place_to_Buffer(int ,char*);
 void lock();
 void unlock();
+void broadcast();
 void Inform_Worker_Threads(int );
+void Disable_restart();
+
+typedef struct ctrl_args{
+    int socket;             //client socket
+    pthread_t* wth;         //pointer in the array of worker threads id
+    int threads;
+}ctrl_args;

@@ -65,7 +65,7 @@ void Read_from_Server(int socketfd){
     char *buffer = malloc(s *sizeof(char));
     if(read(socketfd,buffer,s) == -1){
         perror("read");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     printf("%s\n",buffer);
 }
@@ -103,7 +103,7 @@ void Connect_to_Server(int argc,char** argv){
     /* Create socket */
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){        //sock -> file descriptor of socket
         perror("socket");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
 	/* Find server address */

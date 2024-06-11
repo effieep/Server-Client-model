@@ -77,12 +77,22 @@ void Poll(int sockfd){
     free(buff);
 }
 
-void Exit_Call(int sockfd){
-    int fd;
+void Exit_Call(int sockfd,pthread_t* wth,int threads){
+    int fd,err;
     char *response = malloc(50*sizeof(char));
     strcpy(response,"");
     char mess[] = "SERVER TERMINATED\n";
     strcat(response,mess);
+    Disable_restart();
+    //Unblock the worker threads blocked to a condition
+    broadcast();
+    //Wait for every worker thread to terminate
+    printf("Waiting threads to exit\n");
+    for(int i=0;i<threads;i++){
+        if((err = pthread_join(wth[i], NULL))< 0){
+            perror2("pthread_join",err);
+        }
+    }
     bool client_found = Search_Client(&buffer,sockfd);
     if(client_found){
         char buff[] = "SERVER TERMINATED BEFORE EXECUTION\n";
@@ -94,8 +104,11 @@ void Exit_Call(int sockfd){
     exit(0);
 }
 
-void switch_command(int sockfd, char* comm){
+void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
     const char delim[] = " ";
+    for(int i=0;i<2;i++){
+        printf("switch command id : %ld\n",(unsigned long)wth[i]);
+    }
     char* temp = malloc(BUFF_SIZE*sizeof(char));
     strcpy(temp,comm);
     char *tok = strtok(temp, delim);
@@ -126,7 +139,7 @@ void switch_command(int sockfd, char* comm){
     }else if(strcmp(tok,"poll")==0){
         Poll(sockfd);
     }else if(strcmp(tok,"exit")==0){
-        Exit_Call(sockfd);
+        Exit_Call(sockfd,wth,threads);
     }else{
         printf("Command does not exists.Try again!\n");
     }
@@ -167,7 +180,7 @@ void Return_job_output(job_triplet* job,int pid){
     struct stat file_status;
     if (stat(id, &file_status) < 0) {
         perror("stat");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     int fsize = file_status.st_size;
     printf("size of the file is: %d\n",fsize);
@@ -228,7 +241,7 @@ void Exec_Job(job_triplet* exec_job){
             if (waitpid(pid,&status,0) == -1) {
                 // wait failed
                 perror("wait");
-                exit(EXIT_FAILURE);
+                exit(1);
             }
         }else {                         //child process
             fd = Create_File(getpid(),exec_job->job_id);
@@ -289,7 +302,6 @@ void Initialize_buffer(int bufferSize){
 control* get_buffer(){
     return &buffer;
 }
-
 
 int getconcurrency(){
     return concurrencyLevel;
