@@ -188,20 +188,15 @@ void Destroy_Queue(control* c){
     c->rear = NULL;
 }
 
-bool Search_Client(control* c,int socketfd){
-    bool found = false;
+void Inform_Clients(control* c){
     node* main_cursor;
     main_cursor = c->front;
-    //printf("The queue is : \n");
+    printf("lalalal");
     if(main_cursor != NULL){
         do
         {
-            if(main_cursor->job->client_socket == socketfd){
-                found = true;
-                break;
-            }
+            Write_to_Commander(main_cursor->job->client_socket,"SERVER TERMINATED BEFORE EXECUTION\n");
             main_cursor = main_cursor->next;
         } while (main_cursor != NULL);
     }
-    return found;
 }

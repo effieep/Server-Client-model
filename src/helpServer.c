@@ -161,9 +161,12 @@ job_triplet* Read_Buffer(){
     while(buff->jobs_in_queue == 0){
         printf("Buffer Empty case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
         pthread_cond_wait(&fill,&bmtx);
+        printf("read buffer thread %ld restart is now : %d\n",(unsigned long)pthread_self(),restart);
+        if(restart == 0) return NULL;
     }
-    if(!restart) return NULL;
+    
     printf("Thread %ld woke up to read a job from buffer!\n",(unsigned long)pthread_self());
+    if(executing > getconcurrency()) return NULL;
     job_triplet* job = Dequeue(buff);
     if((err = (pthread_mutex_unlock(&bmtx))) < 0){
         perror2("mutex_unlock",err);
@@ -187,16 +190,31 @@ void unlock(){
     }
 }
 
-void broadcast(){
+void broadcast_fill(){
     int err;
-    if((err = (pthread_cond_broadcast(&empty))) < 0){
-        perror2("broadcast",err);
+    if((err = (pthread_mutex_lock(&bmtx))) < 0){
+        perror2("mutex_lock",err);
     }
     if((err = (pthread_cond_broadcast(&fill))) < 0){
         perror2("broadcast",err);
     }
+    printf("Sent broadcast to fill\n");
+    if((err = (pthread_mutex_unlock(&bmtx))) < 0){
+        perror2("mutex_lock",err);
+    }
+}
+
+void broadcast_concurr(){
+    int err;
+    if((err = (pthread_mutex_lock(&emtx))) < 0){
+        perror2("mutex_lock",err);
+    }
     if((err = (pthread_cond_broadcast(&concurr))) < 0){
         perror2("broadcast",err);
+    }
+    printf("Sent broadcast to concurr\n");
+    if((err = (pthread_mutex_unlock(&emtx))) < 0){
+        perror2("mutex_unlock",err);
     }
 }
 
@@ -210,8 +228,9 @@ void Inform_Worker_Threads(int concurrency){
 }
 
 void Disable_restart(){
-    printf("Restart set to 0\n");
+    int err;
     restart = 0;
+    printf("Restart set to 0\n");
 }
 
 void Check_concurrency(){
@@ -222,6 +241,8 @@ void Check_concurrency(){
     while(executing == getconcurrency()){
         printf("Concurrency reached case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
         pthread_cond_wait(&concurr,&emtx);
+        printf("main thread %ld restart is now : %d\n",(unsigned long)pthread_self(),restart);
+        if(restart == 0) break;
     }
     if((err = (pthread_mutex_unlock(&emtx))) < 0){
         perror2("mutex_unlock",err);
@@ -231,6 +252,8 @@ void Check_concurrency(){
 void *Worker_Thread(void *args){
     int err;
     do{
+        Check_concurrency();
+        if(restart == 0) break;            //exit command was sent
         if((err = (pthread_mutex_lock(&emtx))) < 0){
             perror2("mutex_lock",err);
         }
@@ -239,12 +262,10 @@ void *Worker_Thread(void *args){
         if((err = (pthread_mutex_unlock(&emtx))) < 0){
             perror2("mutex_unlock",err);
         }
-        Check_concurrency();
-        printf("restart is now : %d\n",restart);
-        if(restart == 0) break;
+       
         job_triplet* job = Read_Buffer();
-        if(job == NULL) break;
-        if(!restart) break;
+        if(job == NULL) continue;           //concurrency became smaller
+        if(restart == 0) break;             //exit command was sent
         printf("Job retrieved is: %s %s,%d\n",job->job_id,job->command,job->client_socket);
         //Execute the job
         Exec_Job(job);
@@ -259,6 +280,7 @@ void *Worker_Thread(void *args){
             perror2("mutex_unlock",err);
         }
     }while(restart);
+    printf("Worker Thread %ld exited\n",(unsigned long)pthread_self());
     pthread_exit(NULL);
 }
 

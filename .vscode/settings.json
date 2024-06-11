@@ -10,6 +10,7 @@
         "bitset": "c",
         "chrono": "c",
         "unordered_map": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "errno.h": "c"
     }
 }
