@@ -38,4 +38,4 @@ void Exec_Enqueue(control *,job_triplet*);
 bool Remove_Job(control* ,char*);
 char* Queue_Output(control* );
 void Destroy_Queue(control*);
-bool Search_Client(control* ,int);
+void Inform_Clients(control*);

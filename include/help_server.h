@@ -34,7 +34,8 @@ void Accept_Clients(char**);
 void Place_to_Buffer(int ,char*);
 void lock();
 void unlock();
-void broadcast();
+void broadcast_fill();
+void broadcast_concurr();
 void Inform_Worker_Threads(int );
 void Disable_restart();
 

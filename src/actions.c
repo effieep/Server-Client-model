@@ -79,25 +79,23 @@ void Poll(int sockfd){
 
 void Exit_Call(int sockfd,pthread_t* wth,int threads){
     int fd,err;
-    char *response = malloc(50*sizeof(char));
+    printf("threads %d\n",threads);
+    char *response = malloc(20*sizeof(char));
     strcpy(response,"");
     char mess[] = "SERVER TERMINATED\n";
     strcat(response,mess);
     Disable_restart();
     //Unblock the worker threads blocked to a condition
-    broadcast();
+    broadcast_fill();
+    broadcast_concurr();
     //Wait for every worker thread to terminate
     printf("Waiting threads to exit\n");
     for(int i=0;i<threads;i++){
-        if((err = pthread_join(wth[i], NULL))< 0){
+        if((err = pthread_join(wth[i], NULL)) < 0){
             perror2("pthread_join",err);
         }
     }
-    bool client_found = Search_Client(&buffer,sockfd);
-    if(client_found){
-        char buff[] = "SERVER TERMINATED BEFORE EXECUTION\n";
-        strcat(response,buff);
-    }
+    Inform_Clients(&buffer);
     Destroy_Queue(&buffer);
     Write_to_Commander(sockfd,response);
     free(response);
