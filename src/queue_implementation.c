@@ -29,7 +29,7 @@ void Initialize_Job(job_triplet* job,char* comm,control* ctrl,int cl_socket){
     job->client_socket = cl_socket;
 }
 
-void Enqueue(control *ctrl,char* command,int clientfd){
+job_triplet* Enqueue(control *ctrl,char* command,int clientfd){
     node* new = malloc(sizeof(node));
     printf("Clientfd in Enqueue is : %d\n",clientfd);
     if(new != NULL){
@@ -50,6 +50,7 @@ void Enqueue(control *ctrl,char* command,int clientfd){
     }else{
         printf("Failed to allocate memory\n");
     }
+    return new->job;
 }
 
 void fix_queue_position(control* ctrl){

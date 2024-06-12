@@ -132,7 +132,7 @@ void Cond_Initialization(){
     pthread_cond_init(&concurr, NULL); 
 }
 
-void Place_to_Buffer(int sockfd,char* command){
+job_triplet* Place_to_Buffer(int sockfd,char* command){
     int err;
     if((err = (pthread_mutex_lock(&bmtx))) < 0){
         perror2("mutex_lock",err);
@@ -144,12 +144,13 @@ void Place_to_Buffer(int sockfd,char* command){
         pthread_cond_wait(&empty,&bmtx);
     }
     printf("Thread %ld woke up to place a job to buffer!\n",(unsigned long)pthread_self());
-    Enqueue(buff,command,sockfd);
+    job_triplet* job = Enqueue(buff,command,sockfd);
     printf("Sending signal fill\n");
     pthread_cond_signal(&fill);
     if((err = (pthread_mutex_unlock(&bmtx))) < 0){
         perror2("mutex_unlock",err);
     }
+    return job;
 }
 
 job_triplet* Read_Buffer(){
@@ -174,6 +175,20 @@ job_triplet* Read_Buffer(){
     printf("Sending signal empty\n");
     pthread_cond_signal(&empty);        //there is free space now in the buffer so a new job can be added
     return job;
+}
+
+void lockbuffer(){
+    int err;
+    if((err = (pthread_mutex_lock(&bmtx))) < 0){
+        perror2("mutex_lock",err);
+    }
+}
+
+void unlockbuffer(){
+    int err;
+    if((err = (pthread_mutex_unlock(&bmtx))) < 0){
+        perror2("mutex_unlock",err);
+    }
 }
 
 void lock(){

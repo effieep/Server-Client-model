@@ -7,9 +7,10 @@ static control buffer,c_executing;
 
 void issueJob(int cl_socket,char* command){
     printf("In issueJob sockfd is : %d\n",cl_socket);
-    Place_to_Buffer(cl_socket,command);
-    job_triplet* job_rem = buffer.rear->job;
-
+    job_triplet* job_rem = Place_to_Buffer(cl_socket,command);
+    // lockbuffer();
+    // job_triplet* job_rem = buffer.rear->job;
+    // unlockbuffer();
     //Send the job triplet back to commander
     char *buff = malloc(100*sizeof(char));
     strcpy(buff,"");            //reinitialize buffer
@@ -147,9 +148,9 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
 int Create_File(pid_t pid,char* jobid){
     int fd;
     printf("fd = %d\n",fd);
-    char* id = malloc(10*sizeof(char));
+    char* id = malloc(15*sizeof(char));
     id = int_to_string(pid);
-    char* filename = malloc(15*sizeof(char));
+    char* filename = malloc(25*sizeof(char));
     strcpy(filename,id);
     strcat(filename,".out");
     printf("filename is %s\n",filename);
@@ -217,11 +218,11 @@ void Return_job_output(job_triplet* job,int pid){
     if(unlink(id) < 0){
         perror("unlink");
     }
-    // free(id);
-    // free(file_output);
-    // free(output);
-    // free(endline);
-    // free(startline);
+    free(id);
+    free(file_output);
+    free(output);
+    free(endline);
+    free(startline);
 }
 
 void Exec_Job(job_triplet* exec_job){
@@ -235,6 +236,7 @@ void Exec_Job(job_triplet* exec_job){
         pid = fork();
         if(pid == -1){
             perror("fork");
+            exit(1);
         }else if(pid > 0){              //parent process
             if (waitpid(pid,&status,0) == -1) {
                 // wait failed

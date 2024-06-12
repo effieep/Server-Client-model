@@ -16,6 +16,7 @@
 #include <netdb.h>
 #include <netinet/in.h>	     /* internet sockets */
 #include <pthread.h>
+#include "queue.h"
 
 #define BUFF_SIZE 1024
 #define PERMS 0644	// access permission for the 3 groups of users
@@ -31,9 +32,11 @@ void Manage_Jobs();
 void *Controller_Thread(void*);
 void Accept_Clients(char**);
 
-void Place_to_Buffer(int ,char*);
+job_triplet* Place_to_Buffer(int ,char*);
 void lock();
 void unlock();
+void lockbuffer();
+void unlockbuffer();
 void broadcast_fill();
 void broadcast_concurr();
 void Inform_Worker_Threads(int );
