@@ -188,6 +188,7 @@ void Destroy_Queue(control* c){
     c->rear = NULL;
 }
 
+//For every job in the buffer, print the message "SERVER TERMINATED BEFORE EXECUTION"
 void Inform_Clients(control* c){
     node* main_cursor;
     main_cursor = c->front;
