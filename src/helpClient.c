@@ -74,7 +74,7 @@ void Read_from_Server(int socketfd){
 void Write_to_Server(int socketfd,int argc,char** argv){
    int sum = 0;
     for(int i=3;i<argc;i++){
-        sum = sum + strlen(argv[i]) + 1;    //1 for a space character for every argument
+        sum = sum + strlen(argv[i]) + 1;            //1 for a space character for every argument
     }
     char *buff1 = malloc((sum+10) * sizeof(char));  //+10 for the max 10 digits of number
     memset(buff1,'\0',sum*sizeof(char));
@@ -84,7 +84,7 @@ void Write_to_Server(int socketfd,int argc,char** argv){
     for(int i=3;i<argc;i++){
         strcat(buff1, argv[i]);
         if(i < argc-1){
-            strcat(buff1," ");    //don't add space character at the end
+            strcat(buff1," ");                      //don't add space character at the end
         }
     }
     if(write(socketfd, buff1,strlen(buff1)+1) == -1){
@@ -101,13 +101,13 @@ void Connect_to_Server(int argc,char** argv){
     struct sockaddr *serverptr = (struct sockaddr*)&server;
     struct hostent *rem;
 
-    /* Create socket */
+    // Create socket 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){        //sock -> file descriptor of socket
         perror("socket");
         exit(1);
     }
 
-	/* Find server address */
+	// Find server address 
     if ((rem = gethostbyname(argv[1])) == NULL) {	
 	   herror("gethostbyname"); exit(1);
     }
@@ -116,14 +116,14 @@ void Connect_to_Server(int argc,char** argv){
     memcpy(&server.sin_addr, rem->h_addr, rem->h_length);
     server.sin_port = htons(portnum);                           /* Server port */
 
-    /* Initiate connection */
+    // Initiate connection 
     if (connect(sockfd, serverptr, sizeof(server)) < 0){
         perror("connect");
     }
     Write_to_Server(sockfd,argc,argv);
     Read_from_Server(sockfd);
     
-    if(strcmp(argv[3],"issueJob")== 0){
+    if(strcmp(argv[3],"issueJob")== 0){                         //issueJob waits the output of the job
         Read_from_Server(sockfd);
     }
     close(sockfd);
