@@ -21,10 +21,10 @@ void issueJob(int cl_socket,char* command){
 }
 
 void setConcurrency(int sockfd,char* num){
-    lock();
+    lock();                                         //lock emtx
     concurrencyLevel = atoi(num);
-    Inform_Worker_Threads(concurrencyLevel);
-    unlock();
+    Inform_Worker_Threads(concurrencyLevel);        //Enable worker threads if needed
+    unlock();                                       //unlock emtx
     char *response = malloc(21 *sizeof(char));
     strcpy(response,"CONCURRENCY SET AT ");
     strcat(response,num);
@@ -87,6 +87,8 @@ void Exit_Call(int sockfd,pthread_t* wth,int threads){
             perror2("pthread_join",err);
         }
     }
+    //Send message "SERVER TERMINATED BEFORE EXECUTION" to the 
+    //clients that their job is in the buffer
     Inform_Clients(&buffer);
     Destroy_Queue(&buffer);
     Write_to_Commander(sockfd,response);
@@ -99,6 +101,7 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
     char* temp = malloc(BUFF_SIZE*sizeof(char));
     strcpy(temp,comm);
     char *tok = strtok(temp, delim);
+    //issueJob case
     if(strcmp(tok,"issueJob")== 0){
         char* result = malloc(BUFF_SIZE * sizeof(char));
         strcpy(result,"");
@@ -115,14 +118,18 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
         result[strlen(result) - 1] = '\0';
         issueJob(sockfd,result);
         free(result);
+    //setConcurrency case
     }else if(strcmp(tok,"setConcurrency")==0){
         char *num = strtok(NULL, delim); 
         setConcurrency(sockfd,num);
+    //stop case
     }else if(strcmp(tok,"stop")==0){
         char *job = strtok(NULL, delim); 
         Stop_Job(sockfd,job);
+    //poll case
     }else if(strcmp(tok,"poll")==0){
         Poll(sockfd);
+    //exit case
     }else if(strcmp(tok,"exit")==0){
         Exit_Call(sockfd,wth,threads);
     }else{
@@ -131,6 +138,7 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
     free(temp);
 }
 
+//create pid.out file of the child process - job output
 int Create_File(pid_t pid,char* jobid){
     int fd;
     char* id = malloc(15*sizeof(char));
@@ -179,7 +187,7 @@ void Return_job_output(job_triplet* job,int pid){
     //Add first line
     strcat(output,startline);
 
-    //check how many chars th file contains and allocate them 
+    //read BUFF_SIZE chars of the file and add them to the final output 
     char* file_output = malloc(BUFF_SIZE*sizeof(char));
     int bytes_read;
     while ((bytes_read = read(fd, file_output, BUFF_SIZE)) > 0) {
@@ -196,6 +204,7 @@ void Return_job_output(job_triplet* job,int pid){
     //Respond to the Client
     Write_to_Commander(job->client_socket,output);
     memset(output,'\0',(fsize+80)*sizeof(char));
+
     //Delete the file created for the specific process
     if(unlink(id) < 0){
         perror("unlink");
@@ -244,7 +253,8 @@ void Exec_Job(job_triplet* exec_job){
 }
 
 char** Create_Array_of_args(char* command,int* c){
-    char temp1[100],temp2[100];
+    char* temp1 = malloc((strlen(command)+1)*sizeof(char));
+    char* temp2 = malloc((strlen(command)+1)*sizeof(char));
     strcpy(temp1,command);
     strcpy(temp2,command);
     const char delim[] = " ";
@@ -254,8 +264,8 @@ char** Create_Array_of_args(char* command,int* c){
     *c = count;
     // Iterate through the tokens
     while (token != NULL) {
-        count++;
-        token = strtok(NULL, delim); // Get the next token
+        count++;                        // number of arguments
+        token = strtok(NULL, delim);    // Get the next token
     }
     args = malloc(count * sizeof(char*));
 
@@ -273,6 +283,8 @@ char** Create_Array_of_args(char* command,int* c){
         }
     }
     args[count] = NULL;
+    free(temp1);
+    free(temp2);
     return args;
 }
 
