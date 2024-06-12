@@ -87,8 +87,8 @@ void Exit_Call(int sockfd,pthread_t* wth,int threads){
     strcat(response,mess);
     Disable_restart();
     //Unblock the worker threads blocked to a condition
-    broadcast_fill();
     broadcast_concurr();
+    broadcast_fill();
     //Wait for every worker thread to terminate
     printf("Waiting threads to exit\n");
     for(int i=0;i<threads;i++){
@@ -147,7 +147,6 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
 
 int Create_File(pid_t pid,char* jobid){
     int fd;
-    printf("fd = %d\n",fd);
     char* id = malloc(15*sizeof(char));
     id = int_to_string(pid);
     char* filename = malloc(25*sizeof(char));
@@ -228,11 +227,12 @@ void Return_job_output(job_triplet* job,int pid){
 void Exec_Job(job_triplet* exec_job){
     pid_t pid;
     int fd;
-    int status;
+    char **args;
+    int status,count;
     char* fn;
     int stdoutCopy = dup(1); 
     if(exec_job != NULL){
-        char **args = Create_Array_of_args(exec_job->command);
+        args = Create_Array_of_args(exec_job->command,&count);
         pid = fork();
         if(pid == -1){
             perror("fork");
@@ -252,11 +252,15 @@ void Exec_Job(job_triplet* exec_job){
         }
     }
     Return_job_output(exec_job,pid);
+    for(int i=0;i<count;i++){
+        free(args[i]);
+    }
+    free(args);
     dup2(stdoutCopy,1);
     close(stdoutCopy);
 }
 
-char** Create_Array_of_args(char* command){
+char** Create_Array_of_args(char* command,int* c){
     char temp1[100],temp2[100];
     strcpy(temp1,command);
     strcpy(temp2,command);
@@ -264,6 +268,7 @@ char** Create_Array_of_args(char* command){
     char **args;
     char *token = strtok(temp1, delim);
     int count;
+    *c = count;
     // Iterate through the tokens
     while (token != NULL) {
         count++;

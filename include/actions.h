@@ -18,7 +18,7 @@
 
 void Initialize_buffer(int);
 void Cond_Initialization();
-char** Create_Array_of_args(char*);
+char** Create_Array_of_args(char*,int*);
 void issueJob(int,char* );
 void setConcurrency(int ,char* );
 void Stop_Job(int,char* );
