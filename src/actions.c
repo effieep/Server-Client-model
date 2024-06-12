@@ -3,18 +3,13 @@
 #include "actions.h"
 
 static int concurrencyLevel = 1;
-static control buffer,c_executing;
+static control buffer;
 
 void issueJob(int cl_socket,char* command){
-    printf("In issueJob sockfd is : %d\n",cl_socket);
     job_triplet* job_rem = Place_to_Buffer(cl_socket,command);
-    // lockbuffer();
-    // job_triplet* job_rem = buffer.rear->job;
-    // unlockbuffer();
     //Send the job triplet back to commander
     char *buff = malloc(100*sizeof(char));
-    strcpy(buff,"");            //reinitialize buffer
-    //printf("content of buffer %s\n",buff);
+    strcpy(buff,"");           //reinitialize buffer
     strcat(buff,"JOB ");
     strcat(buff,job_rem->job_id);
     strcat(buff," ");
@@ -34,7 +29,6 @@ void setConcurrency(int sockfd,char* num){
     strcpy(response,"CONCURRENCY SET AT ");
     strcat(response,num);
     strcat(response,"\n");
-    printf("Response is %s\n",response);
     Write_to_Commander(sockfd,response);
     free(response);
 }
@@ -46,9 +40,7 @@ void Stop_Job(int sockfd,char* job_ID){
     char *message = malloc(20*sizeof(char));
     strcpy(buff,"");                            //reinitialize buffer
     strcpy(id,job_ID);
-    //printf("jobid is: %s\n",id);
     bool found = Remove_Job(&buffer,job_ID);
-    //printf("found in wait? %d\n",found_in_wait);
     if(found){
         //Create message JOB <jobid> REMOVED
         strcpy(message,"JOB ");
@@ -81,7 +73,6 @@ void Poll(int sockfd){
 
 void Exit_Call(int sockfd,pthread_t* wth,int threads){
     int fd,err;
-    printf("threads %d\n",threads);
     char *response = malloc(20*sizeof(char));
     strcpy(response,"");
     char mess[] = "SERVER TERMINATED\n";
@@ -91,7 +82,6 @@ void Exit_Call(int sockfd,pthread_t* wth,int threads){
     broadcast_concurr();
     broadcast_fill();
     //Wait for every worker thread to terminate
-    printf("Waiting threads to exit\n");
     for(int i=0;i<threads;i++){
         if((err = pthread_join(wth[i], NULL)) < 0){
             perror2("pthread_join",err);
@@ -106,14 +96,10 @@ void Exit_Call(int sockfd,pthread_t* wth,int threads){
 
 void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
     const char delim[] = " ";
-    for(int i=0;i<2;i++){
-        printf("switch command id : %ld\n",(unsigned long)wth[i]);
-    }
     char* temp = malloc(BUFF_SIZE*sizeof(char));
     strcpy(temp,comm);
     char *tok = strtok(temp, delim);
     if(strcmp(tok,"issueJob")== 0){
-        printf("issuejob case\n");
         char* result = malloc(BUFF_SIZE * sizeof(char));
         strcpy(result,"");
         //Isolate issueJob from the rest of string
@@ -130,7 +116,6 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
         issueJob(sockfd,result);
         free(result);
     }else if(strcmp(tok,"setConcurrency")==0){
-        printf("setConcurrency case\n");
         char *num = strtok(NULL, delim); 
         setConcurrency(sockfd,num);
     }else if(strcmp(tok,"stop")==0){
@@ -153,7 +138,6 @@ int Create_File(pid_t pid,char* jobid){
     char* filename = malloc(25*sizeof(char));
     strcpy(filename,id);
     strcat(filename,".out");
-    printf("filename is %s\n",filename);
     if ( (fd = open(filename,  O_CREAT | O_RDWR | O_APPEND, PERMS)) == -1){
         perror("creating");
         exit(1);
@@ -182,7 +166,6 @@ void Return_job_output(job_triplet* job,int pid){
         exit(1);
     }
     int fsize = file_status.st_size;
-    printf("size of the file is: %d\n",fsize);
 
     //Allocate appropriate memory
     char* output = malloc((fsize+80)*sizeof(char));
@@ -200,7 +183,6 @@ void Return_job_output(job_triplet* job,int pid){
     char* file_output = malloc(BUFF_SIZE*sizeof(char));
     int bytes_read;
     while ((bytes_read = read(fd, file_output, BUFF_SIZE)) > 0) {
-        printf("Read %d bytes from the output file\n",bytes_read);
         strcat(output,file_output);
         memset(file_output,'\0',BUFF_SIZE*sizeof(char));
     }
@@ -275,15 +257,12 @@ char** Create_Array_of_args(char* command,int* c){
         count++;
         token = strtok(NULL, delim); // Get the next token
     }
-    //printf("Count is %d\n",count);
     args = malloc(count * sizeof(char*));
 
     // Tokenize the string
     token = strtok(temp2, delim);
-    //printf("token is %s\n",token);
     args[0] = malloc((strlen(token)+1)*sizeof(char));
     strcpy(args[0],token);
-    //printf("lalalalla %s\n",args[0]);
     count = 1;
     while (token != NULL) {
         token = strtok(NULL, delim); // Get the next token
@@ -294,10 +273,6 @@ char** Create_Array_of_args(char* command,int* c){
         }
     }
     args[count] = NULL;
-    // printf("%s\n",args[0]);
-    // for(int i=0;i<count;i++){
-    //     printf("%s\n",args[i]);
-    // }
     return args;
 }
 
