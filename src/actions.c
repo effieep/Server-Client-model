@@ -180,6 +180,7 @@ void Return_job_output(job_triplet* job,int pid){
 
     //Create first line of the output
     char *startline = malloc(30*sizeof(char));
+    strcpy(startline,"\0");
     strcpy(startline,"-----");
     strcat(startline,job->job_id);
     strcat(startline," output start-----\n\n");
