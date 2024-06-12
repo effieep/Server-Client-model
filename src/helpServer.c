@@ -3,7 +3,7 @@
 #include "actions.h"
 
 pthread_mutex_t bmtx = PTHREAD_MUTEX_INITIALIZER;           //buffer mutex
-pthread_mutex_t emtx = PTHREAD_MUTEX_INITIALIZER;           //mutex to lock when a job is executing 
+pthread_mutex_t emtx = PTHREAD_MUTEX_INITIALIZER;           //executing mutex
 pthread_cond_t empty,fill,concurr;
 
 int executing = 0;
@@ -64,6 +64,8 @@ void perror_exit(char *message) {
 }
 
 void Write_to_Commander(int socketfd,char* buff){
+    //Calculates the length of the string and it adds it to the final
+    //response, so as read to allocate the appropriate size of buffer
     int length = strlen(buff) + 1;
     char* res = malloc((length+10) * sizeof(char));
     char* l = int_to_string(length);
@@ -84,6 +86,7 @@ char* Read_from_Commander(int socketfd){
     int bytes_read;
     char *size = malloc(10*sizeof(char));
     int i = 0;
+    //Decodes the message and splits the size with the rest of the string
     while ((bytes_read = read(socketfd, &ch, 1)) > 0) {
         if (ch == ' ') {
             break;
@@ -92,6 +95,7 @@ char* Read_from_Commander(int socketfd){
         i++;
     }
     int s = atoi(size);
+    //allocates the exact size
     char *buffer = malloc(s *sizeof(char));
     if(read(socketfd,buffer,s) == -1){
         perror("read");
@@ -108,7 +112,9 @@ void *Controller_Thread(void* arg) {
     int newsock = data->socket;
     pthread_t* workers_id = data->wth;
     int threads = data->threads;
+    //Reads the command from the Client
     char *command = Read_from_Commander(newsock);
+    //Chooses the appropriate action
     switch_command(newsock,command,workers_id,threads);
     free(command);
     //printf("Exit Controller Thread\n");
@@ -130,12 +136,9 @@ job_triplet* Place_to_Buffer(int sockfd,char* command){
     control* buff = get_buffer();
     //If buffer is full put thread in sleeping mode 
     while(buff->jobs_in_queue == buff->max_jobs){
-        //printf("Buffer Full case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
         pthread_cond_wait(&empty,&bmtx);
     }
-    //printf("Thread %ld woke up to place a job to buffer!\n",(unsigned long)pthread_self());
     job_triplet* job = Enqueue(buff,command,sockfd);
-    //printf("Sending signal fill\n");
     pthread_cond_signal(&fill);
     if((err = (pthread_mutex_unlock(&bmtx))) < 0){
         perror2("mutex_unlock",err);
@@ -150,17 +153,16 @@ job_triplet* Read_Buffer(){
     }
     control* buff = get_buffer();
     while(buff->jobs_in_queue == 0){
-        //printf("Buffer Empty case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
         pthread_cond_wait(&fill,&bmtx);
         if(restart == 0) return NULL;
     }
-    //printf("Thread %ld woke up to read a job from buffer!\n",(unsigned long)pthread_self());
+    //Concurrecy became smaller, while the thread was in sleep mode
+    //So it does not have to read from buffer
     if(executing > getconcurrency()) return NULL;
     job_triplet* job = Dequeue(buff);
     if((err = (pthread_mutex_unlock(&bmtx))) < 0){
         perror2("mutex_unlock",err);
     }
-    //printf("Sending signal empty\n");
     pthread_cond_signal(&empty);        //there is free space now in the buffer so a new job can be added
     return job;
 }
@@ -205,7 +207,9 @@ void broadcast_concurr(){
     }
 }
 
+//Used in setConcurrency case
 void Inform_Worker_Threads(int concurrency){
+    //If concurrency bacome bigger,then enable the sleeping threads
     if(concurrency > executing){
         int enable = concurrency - executing;
         for(int i=0;i<enable;i++){
@@ -223,8 +227,8 @@ void Check_concurrency(){
     if((err = (pthread_mutex_lock(&emtx))) < 0){
         perror2("mutex_lock",err);
     }
+    //if the limit of concurrent worker threads is reached, wait
     while(executing == getconcurrency()){
-        //printf("Concurrency reached case: Thread %ld in waiting stage\n",(unsigned long)pthread_self());
         pthread_cond_wait(&concurr,&emtx);
         if(restart == 0) break;
     }
@@ -251,7 +255,7 @@ void *Worker_Thread(void *args){
         if(restart == 0) break;             //exit command was sent
         //Execute the job
         Exec_Job(job);
-        close(job->client_socket);
+        close(job->client_socket);          
         if((err = (pthread_mutex_lock(&emtx))) < 0){
             perror2("mutex_lock",err);
         }
@@ -260,7 +264,6 @@ void *Worker_Thread(void *args){
             perror2("mutex_unlock",err);
         }
     }while(restart);
-    //printf("Worker Thread %ld exited\n",(unsigned long)pthread_self());
     pthread_exit(NULL);
 }
 
@@ -278,16 +281,16 @@ void Accept_Clients(char** argv){
     threadPoolSize = atoi(argv[3]);
     Initialize_buffer(buffersize);
     Cond_Initialization();
-    /* Create socket */
+    // Create socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror_exit("socket");
     server.sin_family = AF_INET;                        /* Internet domain */
     server.sin_addr.s_addr = htonl(INADDR_ANY);
     server.sin_port = htons(port);                      /* The given port */
-    /* Bind socket to address */
+    // Bind socket to address 
     if (bind(sock, serverptr, sizeof(server)) < 0)
         perror_exit("bind");
-    /* Listen for connections */
+    // Listen for connections 
     if (listen(sock, 5) < 0) perror_exit("listen");
 
     // Create threadPoolSize worker threads
@@ -298,9 +301,8 @@ void Accept_Clients(char** argv){
             exit(1); 
         }
     }
-
     while (1) {
-        /* accept connection */
+        // accept connection
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");  
         int status;
         pthread_t thr;
@@ -308,11 +310,11 @@ void Accept_Clients(char** argv){
         arg.socket = newsock;
         arg.wth = workers;
         arg.threads = threadPoolSize;
-        if ((err = pthread_create(&thr, NULL, Controller_Thread, &arg))!=0) { /* New thread */
+        if ((err = pthread_create(&thr, NULL, Controller_Thread, &arg))!=0) { /* New controller thread */
             perror2("pthread_create", err);
             exit(1); 
         }
-        //Release its sources when it will terminate
+        // Release its sources when it will terminate
         if ((err = pthread_detach(thr))!=0) { 
             perror2("pthread_create", err);
             exit(1); 
