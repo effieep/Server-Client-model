@@ -68,6 +68,8 @@ void Read_from_Server(int socketfd){
         exit(1);
     }
     printf("%s\n",buffer);
+    free(buffer);
+    free(size);
 }
 
 void Write_to_Server(int socketfd,int argc,char** argv){
@@ -91,6 +93,7 @@ void Write_to_Server(int socketfd,int argc,char** argv){
         perror("write");
         exit(1);
     }
+    free(buff1);
 }
 
 void Connect_to_Server(int argc,char** argv){

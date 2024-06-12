@@ -51,6 +51,3 @@ $(BLDDIR)/helpClient.o: $(SRCDIR)/helpClient.c $(INCDIR)/help_client.h
 # clean house
 clean:
 	rm -f $(OBJS1) $(OBJS2) $(OUT1) $(OUT2) $(OUT3)
-
-restart:
-	rm -f jobExecutorServer.txt
