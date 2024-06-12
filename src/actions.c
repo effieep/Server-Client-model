@@ -75,6 +75,7 @@ void Poll(int sockfd){
     char* out = Queue_Output(&buffer);
     strcpy(buff,out);
     Write_to_Commander(sockfd,buff);
+    free(out);
     free(buff);
 }
 
