@@ -35,8 +35,6 @@ void Accept_Clients(char**);
 job_triplet* Place_to_Buffer(int ,char*);
 void lock();
 void unlock();
-void lockbuffer();
-void unlockbuffer();
 void broadcast_fill();
 void broadcast_concurr();
 void Inform_Worker_Threads(int );

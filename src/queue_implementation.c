@@ -31,7 +31,6 @@ void Initialize_Job(job_triplet* job,char* comm,control* ctrl,int cl_socket){
 
 job_triplet* Enqueue(control *ctrl,char* command,int clientfd){
     node* new = malloc(sizeof(node));
-    printf("Clientfd in Enqueue is : %d\n",clientfd);
     if(new != NULL){
         new->job = malloc(sizeof(job_triplet));
         new->next = NULL;
@@ -192,7 +191,6 @@ void Destroy_Queue(control* c){
 void Inform_Clients(control* c){
     node* main_cursor;
     main_cursor = c->front;
-    printf("lalalal");
     if(main_cursor != NULL){
         do
         {

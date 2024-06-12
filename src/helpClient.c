@@ -61,7 +61,6 @@ void Read_from_Server(int socketfd){
         i++;
     }
     int s = atoi(size);
-    printf("size is %d;\n",s);
     char *buffer = malloc(s *sizeof(char));
     if(read(socketfd,buffer,s) == -1){
         perror("read");
@@ -88,7 +87,6 @@ void Write_to_Server(int socketfd,int argc,char** argv){
             strcat(buff1," ");    //don't add space character at the end
         }
     }
-    printf("String to be sent is %s\n",buff1);
     if(write(socketfd, buff1,strlen(buff1)+1) == -1){
         perror("write");
         exit(1);
@@ -122,8 +120,6 @@ void Connect_to_Server(int argc,char** argv){
     if (connect(sockfd, serverptr, sizeof(server)) < 0){
         perror("connect");
     }
-    printf("Connecting to %s port %d\n", argv[1], portnum);
-    printf("Client socket is : %d",sockfd);
     Write_to_Server(sockfd,argc,argv);
     Read_from_Server(sockfd);
     
