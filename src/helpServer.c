@@ -157,6 +157,7 @@ job_triplet* Read_Buffer(){
         perror2("mutex_lock",err);
     }
     control* buff = get_buffer();
+    //Buffer empty 
     while(buff->jobs_in_queue == 0){
         pthread_cond_wait(&fill,&bmtx);
         if(restart == 0) return NULL;
