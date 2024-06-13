@@ -257,8 +257,8 @@ void *Worker_Thread(){
         }
        
         job_triplet* job = Read_Buffer();
-        if(job == NULL) continue;           //concurrency became smaller
         if(restart == 0) break;             //exit command was sent
+        if(job == NULL) continue;           //concurrency became smaller
         //Execute the job
         Exec_Job(job);
         close(job->client_socket);          
