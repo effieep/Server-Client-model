@@ -84,7 +84,12 @@
 Στις συναρτήσεις **Write_to_Commander** και **Write_to_Server** στην αρχή προσθέτω το length του string και στη συνέχεια το string, έτσι ώστε η **Read_from_Commander** και **Read_from_Server** να μπορούν να δεσμεύσουν κατάλληλο μέγεθος buffer. Με αυτό τον τρόπο μπορεί να περαστεί οσοδήποτε μεγάλο μήνυμα και η δέσμευση μνήμης γίνεται δυναμικά.
 
 
+### Εκτέλεση του προγράμματος 
 
+Με την εντολή make δημιουργούνται τα εκτελέσιμα jobExecutorServer και jobCommander στον φάκελο /bin/. Επιπλέον δημιουργείται και το εκτελέσιμο progDelay. 
+
+Για την εκκίνηση του server αρκεί η εντολή : ./bin/jobExecutorServer [portNum] [bufferSize] [threadPoolSize]
+Για τον jobCommander : ./bin/jobCommander [servername] [portNum] [jobCommanderinputcommand]
 
 
 
