@@ -74,8 +74,14 @@
 
 - **Exec_job**
 
+Η Exec_job δημιουργεί έναν πίνακα που περιέχει σε κάθε θέση του ένα argument της εντολής και στη συνέχεια κάνει fork. Χρησιμοποιώ την waitpid για να περιμένει να ολοκληρωθεί το child process έτσι ώστε να μπορώ μέσω dup2 να έχω όλο το output του job στο αντίστοιχο file το οποίο δημιουργείται με τη βοήθεια της Create_file και έχει όνομα pid.out, όπου pid το process id του child process. 
+
+Αφού κάνει terminate το παιδί, καλείται η Return_job_output η οποία "κατασκευάζει" το τελικό response για τον Client, όπου περιέχει στην αρχή -----job_XX output start-----, μετά διαβάζει σε ένα while BUFF_SIZE δεδομένα από το αρχείο και με strcat τα τοποθετεί στο τέλος του output. Τέλος προσθέτω το -----job_XX output end-----.
 
 
+### Read - Write
+
+Στις συναρτήσεις **Write_to_Commander** και **Write_to_Server** στην αρχή προσθέτω το length του string και στη συνέχεια το string, έτσι ώστε η **Read_from_Commander** και **Read_from_Server** να μπορούν να δεσμεύσουν κατάλληλο μέγεθος buffer. Με αυτό τον τρόπο μπορεί να περαστεί οσοδήποτε μεγάλο μήνυμα και η δέσμευση μνήμης γίνεται δυναμικά.
 
 
 
