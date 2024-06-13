@@ -5,8 +5,8 @@ BINDIR = ./bin
 INCDIR = ./include
 
 CC	= gcc
-FLAGS   = -I$(INCDIR) -g
-#-Wall -Wextra -Werror NA TA VALOOOOOOO
+FLAGS   = -I$(INCDIR) -g -Wall -Wextra -Werror
+
 # -g option enables debugging mode 
 # -c flag generates object code for separate files
 

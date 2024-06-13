@@ -42,6 +42,7 @@ void Disable_restart();
 
 typedef struct ctrl_args{
     int socket;             //client socket
+    int main_socket;        //so as to close the socket in case of exit
     pthread_t* wth;         //pointer in the array of worker threads id
     int threads;
 }ctrl_args;

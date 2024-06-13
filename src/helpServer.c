@@ -110,13 +110,18 @@ void *Controller_Thread(void* arg) {
     ctrl_args *data;
     data = (ctrl_args *) arg;
     int newsock = data->socket;
+    int main_sock = data->main_socket;
     pthread_t* workers_id = data->wth;
     int threads = data->threads;
     //Reads the command from the Client
     char *command = Read_from_Commander(newsock);
     //Chooses the appropriate action
-    switch_command(newsock,command,workers_id,threads);
+    bool ex = switch_command(newsock,command,workers_id,threads);
     free(command);
+    if(ex){
+        close(main_sock);
+        exit(0);
+    }
     //printf("Exit Controller Thread\n");
     pthread_exit(NULL);
 }
@@ -237,7 +242,7 @@ void Check_concurrency(){
     }
 }
 
-void *Worker_Thread(void *args){
+void *Worker_Thread(){
     int err;
     do{
         Check_concurrency();
@@ -305,10 +310,10 @@ void Accept_Clients(char** argv){
     while (connect) {
         // accept connection
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");  
-        int status;
         pthread_t thr;
         ctrl_args arg;
         arg.socket = newsock;
+        arg.main_socket = sock;
         arg.wth = workers;
         arg.threads = threadPoolSize;
         if ((err = pthread_create(&thr, NULL, Controller_Thread, &arg))!=0) { /* New controller thread */
@@ -321,6 +326,4 @@ void Accept_Clients(char** argv){
             exit(1); 
         }
     }
-    close(sock);
-    exit(0);
 }

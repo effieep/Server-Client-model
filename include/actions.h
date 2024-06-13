@@ -24,7 +24,7 @@ void setConcurrency(int ,char* );
 void Stop_Job(int,char* );
 void Poll(int);
 void Exit_Call(int,pthread_t*,int);
-void switch_command(int, char*,pthread_t*,int);
+bool switch_command(int, char*,pthread_t*,int);
 job_triplet* Read_Buffer();
 void Exec_Job(job_triplet*);
 control* get_buffer();

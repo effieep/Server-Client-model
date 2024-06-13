@@ -35,7 +35,6 @@ void setConcurrency(int sockfd,char* num){
 
 void Stop_Job(int sockfd,char* job_ID){
     char* id = malloc(6*sizeof(char));
-    int fd;
     char *buff = malloc(10*sizeof(char));
     char *message = malloc(20*sizeof(char));
     strcpy(buff,"");                            //reinitialize buffer
@@ -72,7 +71,7 @@ void Poll(int sockfd){
 }
 
 void Exit_Call(int sockfd,pthread_t* wth,int threads){
-    int fd,err;
+    int err;
     char *response = malloc(20*sizeof(char));
     strcpy(response,"");
     char mess[] = "SERVER TERMINATED\n";
@@ -96,7 +95,7 @@ void Exit_Call(int sockfd,pthread_t* wth,int threads){
     exit(0);
 }
 
-void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
+bool switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
     const char delim[] = " ";
     char* temp = malloc(BUFF_SIZE*sizeof(char));
     strcpy(temp,comm);
@@ -118,28 +117,39 @@ void switch_command(int sockfd, char* comm,pthread_t* wth,int threads){
         result[strlen(result) - 1] = '\0';
         issueJob(sockfd,result);
         free(result);
+        free(temp);
+        return false;
     //setConcurrency case
     }else if(strcmp(tok,"setConcurrency")==0){
         char *num = strtok(NULL, delim); 
         setConcurrency(sockfd,num);
+        free(temp);
+        return false;
     //stop case
     }else if(strcmp(tok,"stop")==0){
         char *job = strtok(NULL, delim); 
         Stop_Job(sockfd,job);
+        free(temp);
+        return false;
     //poll case
     }else if(strcmp(tok,"poll")==0){
         Poll(sockfd);
+        free(temp);
+        return false;
     //exit case
     }else if(strcmp(tok,"exit")==0){
         Exit_Call(sockfd,wth,threads);
+        free(temp);
+        return true;
     }else{
         printf("Command does not exists.Try again!\n");
+        free(temp);
+        return false;
     }
-    free(temp);
 }
 
 //create pid.out file of the child process - job output
-int Create_File(pid_t pid,char* jobid){
+int Create_File(pid_t pid){
     int fd;
     char* id = malloc(15*sizeof(char));
     id = int_to_string(pid);
@@ -222,7 +232,6 @@ void Exec_Job(job_triplet* exec_job){
     int fd;
     char **args;
     int status,count;
-    char* fn;
     int stdoutCopy = dup(1); 
     if(exec_job != NULL){
         args = Create_Array_of_args(exec_job->command,&count);
@@ -237,7 +246,7 @@ void Exec_Job(job_triplet* exec_job){
                 exit(1);
             }
         }else {                         //child process
-            fd = Create_File(getpid(),exec_job->job_id);
+            fd = Create_File(getpid());
             dup2(fd,1);
             if(execvp(args[0],args)==-1){
                 perror("execv");
