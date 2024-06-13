@@ -8,7 +8,7 @@
 
 Η υλοποίηση έχει γίνει σε 2 αρχεία jobCommander.c(main) και helpClient.c (βοηθητικές συναρτήσεις).
 
-## Job Executor Server
+## Job Executor Server Implementation
 
 - **Ελεγχος arguments**
 
