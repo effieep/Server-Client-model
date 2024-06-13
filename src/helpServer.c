@@ -301,7 +301,8 @@ void Accept_Clients(char** argv){
             exit(1); 
         }
     }
-    while (1) {
+    bool connect = 1;
+    while (connect) {
         // accept connection
     	if ((newsock = accept(sock, clientptr, &clientlen)) < 0) perror_exit("accept");  
         int status;
@@ -321,4 +322,5 @@ void Accept_Clients(char** argv){
         }
     }
     close(sock);
+    exit(0);
 }

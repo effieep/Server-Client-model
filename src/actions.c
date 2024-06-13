@@ -261,13 +261,13 @@ char** Create_Array_of_args(char* command,int* c){
     const char delim[] = " ";
     char **args;
     char *token = strtok(temp1, delim);
-    int count;
-    *c = count;
+    int count = 1;
     // Iterate through the tokens
     while (token != NULL) {
         count++;                        // number of arguments
         token = strtok(NULL, delim);    // Get the next token
     }
+    *c = count;
     args = malloc(count * sizeof(char*));
 
     // Tokenize the string
